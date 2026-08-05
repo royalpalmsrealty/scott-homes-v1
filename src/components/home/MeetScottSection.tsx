@@ -6,6 +6,15 @@ import { brand } from "@/lib/brand";
 
 const facts = ["Broker/Owner", "Principal Broker", "Key West, FL"];
 
+// Pulled from Scott's approved bio on the About page — reused here as
+// highlights rather than a bare fact-chip row, to give the section real
+// substance instead of empty space.
+const highlights = [
+  { value: "2001", label: "In Key West Real Estate Since" },
+  { value: "2013", label: "Key West Realtor of the Year" },
+  { value: "$52.7M", label: "Combined Firm Sales, 2013" },
+];
+
 export function MeetScottSection() {
   return (
     <section
@@ -24,8 +33,8 @@ export function MeetScottSection() {
       <div className="relative mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
         <SectionHeading eyebrow="Your Agent" heading={`Meet ${brand.broker.name}`} as="h2" />
 
-        <div className="mt-10 flex flex-col gap-10 sm:flex-row">
-          <div className="relative shrink-0 self-start">
+        <div className="mt-10 grid gap-12 lg:grid-cols-[380px_1fr] lg:items-center">
+          <div className="relative mx-auto self-start sm:mx-0">
             {/* Offset card behind the photo for depth. */}
             <span
               className="absolute -bottom-4 -right-4 h-full w-full border border-line bg-white"
@@ -37,7 +46,7 @@ export function MeetScottSection() {
                 alt={brand.broker.name}
                 width={629}
                 height={1120}
-                className="h-56 w-auto shrink-0 transition-transform duration-500 hover:scale-105 sm:h-64 motion-reduce:transition-none motion-reduce:hover:scale-100"
+                className="h-72 w-auto shrink-0 transition-transform duration-500 hover:scale-105 sm:h-96 lg:h-[420px] motion-reduce:transition-none motion-reduce:hover:scale-100"
               />
               <span className="absolute bottom-0 left-0 bg-ink px-3 py-1.5 font-sans text-[11px] font-medium uppercase tracking-wide text-white">
                 {brand.broker.title.split(",")[0]}
@@ -45,14 +54,25 @@ export function MeetScottSection() {
             </div>
           </div>
 
-          <div className="max-w-2xl">
-            <p className="font-sans text-base text-body">
+          <div>
+            <p className="max-w-2xl font-sans text-base text-body sm:text-lg">
               {brand.broker.name} is {brand.brokerage}&rsquo;s {brand.broker.title.toLowerCase()},
               working directly with every buyer and seller he represents — from the first
               showing to the closing table.
             </p>
 
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="mt-8 grid grid-cols-3 gap-6 border-y border-teal/20 py-6">
+              {highlights.map((highlight) => (
+                <div key={highlight.label}>
+                  <p className="font-display text-3xl text-gold sm:text-4xl">{highlight.value}</p>
+                  <p className="mt-1 font-sans text-xs uppercase tracking-wide text-muted">
+                    {highlight.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-2">
               {facts.map((fact) => (
                 <span
                   key={fact}
