@@ -1,26 +1,144 @@
 @import "tailwindcss";
 
+/*
+  Royal Palms Realty — brand tokens.
+  Sampled from the client's JPEG logo — confirm against the vector SVG
+  before launch (see TODO-CLIENT-ASSET in README and §15 of the build brief).
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --white: #ffffff;
+  --paper: #fafaf8;
+  --line: #e8e6e0;
+
+  --ink: #000000;
+  --body: #2e3233;
+  --muted: #6b7071;
+
+  --teal: #28bcb8;
+  --teal-deep: #0f6e6b;
+
+  --gold: #96802e;
+  --gold-deep: #7a6722;
+
+  --font-display: var(--font-playfair);
+  --font-body: var(--font-inter);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-line: var(--line);
+
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-muted: var(--muted);
+
+  --color-teal: var(--teal);
+  --color-teal-deep: var(--teal-deep);
+
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+
+  /* Near-square radius — architectural, not pill-shaped. */
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    background: var(--white);
+    color: var(--body);
+    font-family: var(--font-body);
+  }
+
+  /* Default heading color/face — an unlayered rule here would beat utility
+     classes like text-white regardless of specificity, since Tailwind's
+     utilities live in @layer utilities. Keeping this in @layer base lets
+     a per-element text-white/text-ink override win as expected. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--ink);
+    font-family: var(--font-display);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Scroll-triggered fade-and-rise, per the brief's motion spec. Respects reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 300ms ease-out, transform 300ms ease-out;
+  }
+
+  .reveal-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Credentials ticker — continuous marquee, doubled content loops at -50%.
+   Runs start-at-(-50%)-to-0 so the content flows left-to-right ("clockwise"). */
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.ticker-track {
+  animation: ticker-scroll 40s linear infinite;
+}
+
+/* Pause on hover/focus — motion that runs longer than 5s needs a way to stop it (WCAG 2.2.2). */
+.ticker-wrap:hover .ticker-track,
+.ticker-wrap:focus-within .ticker-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+}
+
+.ticker-mask {
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+}
+
+/* Legibility for white text over video, with no background shape behind it —
+   stacked shadows hug the letterforms instead of reading as a panel/box. */
+.text-on-video {
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.9),
+    0 4px 12px rgba(0, 0, 0, 0.7),
+    0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Same legibility guarantee as .text-on-video, plus a teal glow so the
+   headline reads as branded without swapping the fill to teal itself —
+   solid teal glyphs measured ~2-3:1 against bright frames in this footage
+   and became hard to read; a white core with a teal halo keeps both. */
+.text-on-video-teal {
+  text-shadow:
+    0 0 10px rgba(40, 188, 184, 0.95),
+    0 0 26px rgba(40, 188, 184, 0.55),
+    0 1px 3px rgba(0, 0, 0, 0.9),
+    0 10px 28px rgba(0, 0, 0, 0.5);
 }

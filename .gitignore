@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local lead fallback queue (see src/lib/leadQueue.ts) — never commit lead data
+/.data
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
