@@ -2,7 +2,12 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ContactForm } from "@/components/contact/ContactForm";
-import { brand } from "@/lib/brand";
+import { CalendlyButton } from "@/components/scheduling/CalendlyButton";
+import { brand, socialPlatforms } from "@/lib/brand";
+
+// R11: connects the brand's confirmed social profiles to the schema — this
+// is how Google links them to the business, at no runtime cost.
+const sameAs = socialPlatforms.filter((p) => p.url).map((p) => p.url);
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -36,6 +41,7 @@ export default function ContactPage() {
               addressCountry: "US",
             },
             areaServed: "Key West, FL",
+            sameAs,
             founder: {
               "@type": "Person",
               name: brand.broker.name,
@@ -103,6 +109,23 @@ export default function ContactPage() {
                   Email
                 </a>
               </div>
+            </div>
+
+            <div className="border border-line p-6 sm:p-8">
+              <p className="font-sans text-xs font-medium uppercase tracking-[0.18em] text-gold-deep">
+                Prefer to Talk It Through?
+              </p>
+              <p className="mt-3 font-sans text-sm text-body">
+                Book a free 15-minute call — enough time to walk through a listing, talk
+                through timing on a sale, or just get oriented in the Key West market. No
+                pressure, no obligation.
+              </p>
+              <CalendlyButton
+                utmContent="contact-page"
+                className="mt-4 flex min-h-11 items-center justify-center bg-teal px-4 py-2.5 font-sans text-sm font-medium text-ink transition-opacity hover:opacity-90"
+              >
+                Book a 15-Minute Call
+              </CalendlyButton>
             </div>
 
             <div className="border border-line p-6 sm:p-8">

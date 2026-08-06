@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { SocialLinks } from "@/components/ui/SocialLinks";
+import { CalendlyButton } from "@/components/scheduling/CalendlyButton";
 import { brand } from "@/lib/brand";
 
 export const metadata: Metadata = {
@@ -164,12 +165,12 @@ export default function AboutPage() {
               </p>
             </div>
 
-            <Link
-              href="/contact"
-              className="mt-6 inline-flex min-h-11 items-center justify-center bg-ink px-6 py-3 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal"
+            <CalendlyButton
+              utmContent="about-scott-forman"
+              className="mt-6 inline-flex min-h-11 items-center justify-center bg-teal px-6 py-3 font-sans text-sm font-medium text-ink transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal"
             >
               Schedule a Call With Scott
-            </Link>
+            </CalendlyButton>
           </div>
         </div>
       </section>

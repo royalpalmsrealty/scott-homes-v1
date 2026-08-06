@@ -5,7 +5,11 @@ function formatPrice(price: number) {
   return `$${price.toLocaleString("en-US")}`;
 }
 
+const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
+
 export function PropertyCard({ listing }: { listing: DummyListing }) {
+  const isNew = Date.now() - new Date(listing.listedAt).getTime() < NEW_WINDOW_MS;
+
   return (
     <div className="flex h-full flex-col border border-line bg-white">
       <div className="relative aspect-[4/3] overflow-hidden">
@@ -16,11 +20,18 @@ export function PropertyCard({ listing }: { listing: DummyListing }) {
           sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="object-cover"
         />
-        {listing.status && (
-          <span className="absolute left-3 top-3 inline-flex h-7 items-center bg-teal px-3 font-sans text-[11px] font-medium uppercase tracking-wide text-ink">
-            {listing.status}
-          </span>
-        )}
+        <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+          {isNew && (
+            <span className="inline-flex h-7 items-center bg-gold px-3 font-sans text-[11px] font-medium uppercase tracking-wide text-ink">
+              New
+            </span>
+          )}
+          {listing.status && (
+            <span className="inline-flex h-7 items-center bg-teal px-3 font-sans text-[11px] font-medium uppercase tracking-wide text-ink">
+              {listing.status}
+            </span>
+          )}
+        </div>
         <span className="absolute bottom-2 right-3 bg-ink/60 px-2 py-0.5 font-sans text-[10px] uppercase tracking-wide text-white">
           Sample Photo
         </span>

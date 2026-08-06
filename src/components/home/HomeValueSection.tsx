@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BackgroundVideo } from "@/components/media/BackgroundVideo";
 import { VideoTextPanel } from "@/components/media/VideoTextPanel";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { TrackedLink } from "@/components/ui/TrackedLink";
 import { brand } from "@/lib/brand";
 
 export function HomeValueSection() {
@@ -28,12 +29,14 @@ export function HomeValueSection() {
             no pressure.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
+            <TrackedLink
               href="/home-value"
+              event="valuation_cta_click"
+              params={{ location: "homepage-band" }}
               className="inline-flex min-h-11 items-center justify-center bg-white px-6 py-3 font-sans text-sm font-medium text-ink transition-colors hover:bg-teal hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal"
             >
-              Request Free Valuation
-            </Link>
+              What&rsquo;s My Home Worth?
+            </TrackedLink>
             <Link
               href="/contact"
               className="text-on-video inline-flex min-h-11 items-center justify-center border border-white px-6 py-3 font-sans text-sm font-medium text-white shadow-[0_2px_14px_rgba(0,0,0,0.45)] transition-colors hover:border-teal hover:bg-teal hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal"

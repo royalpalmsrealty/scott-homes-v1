@@ -28,14 +28,32 @@ export const brand = {
   },
 } as const;
 
-// Confirmed with the client. Instagram was referenced but no working
-// link/handle came through as text — add it here once we have one.
+// R11 (Revision Round 2) is explicit: exactly one account per platform —
+// Instagram, Facebook, LinkedIn, YouTube — no more, no less. Empty string =
+// unconfirmed; SocialLinks hides the icon entirely rather than rendering a
+// dead link. instagram is empty because no working link/handle ever came
+// through as text (only broken image attachments) — confirm before launch.
+//
+// tiktok is kept here (real, client-supplied handle) but intentionally left
+// out of SocialLinks/sameAs per R11's 4-platform list — flagged, not deleted,
+// in case the client wants it added back to that list explicitly.
 export const social = {
+  instagram: "",
   facebook: "https://www.facebook.com/share/19Mq7D4Yyj/?mibextid=wwXIfr",
   linkedin: "https://www.linkedin.com/in/scott-forman-473681b",
   youtube: "https://www.youtube.com/@sforman789",
   tiktok: "https://www.tiktok.com/@scottforman11",
 } as const;
+
+// The definitive R11 platform order — every "one icon per platform" render
+// (footer, /about/scott-forman) should read from this, not from `social`
+// directly, so dropping a URL back to "" is the only step needed to hide it.
+export const socialPlatforms = [
+  { key: "instagram", label: "Instagram", url: social.instagram },
+  { key: "facebook", label: "Facebook", url: social.facebook },
+  { key: "linkedin", label: "LinkedIn", url: social.linkedin },
+  { key: "youtube", label: "YouTube", url: social.youtube },
+] as const;
 
 export const rentalBookingUrl = "https://book.hostfully.com/royal-palms-realty/search";
 
@@ -44,6 +62,7 @@ export const primaryNav = [
   { label: "Neighborhoods", href: "/neighborhoods" },
   { label: "Rentals", href: "/rentals" },
   { label: "Sell", href: "/sell" },
+  { label: "Blog", href: "/blog" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ] as const;

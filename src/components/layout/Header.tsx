@@ -4,6 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { brand, primaryNav } from "@/lib/brand";
+import { trackValuationCtaClick } from "@/lib/analytics";
+import { CalendlyButton } from "@/components/scheduling/CalendlyButton";
 
 export function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -50,18 +52,13 @@ export function Header() {
           </ul>
         </nav>
 
-        <div className="hidden items-center gap-6 lg:flex">
-          <a
-            href={brand.phone.href}
-            className="font-sans text-sm font-medium text-body transition-colors hover:text-teal-deep focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-deep"
-          >
-            {brand.phone.display}
-          </a>
+        <div className="hidden items-center gap-4 lg:flex">
           <Link
-            href="/search"
-            className="inline-flex min-h-11 items-center bg-ink px-5 py-2.5 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-deep"
+            href="/home-value"
+            onClick={() => trackValuationCtaClick("header")}
+            className="inline-flex h-9 items-center rounded-full border border-ink px-4 font-sans text-sm font-medium text-ink transition-colors hover:border-teal hover:bg-teal focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-deep"
           >
-            Search Listings
+            What&rsquo;s My Home Worth?
           </Link>
         </div>
 
@@ -83,6 +80,16 @@ export function Header() {
           className="fixed inset-x-0 top-16 bottom-0 z-30 flex flex-col bg-white lg:hidden"
         >
           <nav aria-label="Primary" className="flex-1 overflow-y-auto px-6 py-8">
+            <Link
+              href="/home-value"
+              onClick={() => {
+                trackValuationCtaClick("mobile-drawer");
+                setDrawerOpen(false);
+              }}
+              className="mb-8 flex min-h-11 items-center justify-center rounded-full border border-ink px-5 py-3 font-sans text-sm font-medium text-ink transition-colors hover:border-teal hover:bg-teal"
+            >
+              What&rsquo;s My Home Worth?
+            </Link>
             <ul className="flex flex-col gap-6">
               {primaryNav.map((item) => (
                 <li key={item.href}>
@@ -104,6 +111,12 @@ export function Header() {
             >
               Call {brand.broker.name}: {brand.phone.display}
             </a>
+            <CalendlyButton
+              utmContent="mobile-drawer"
+              className="mt-4 flex min-h-11 items-center justify-center rounded-full bg-teal px-5 py-3 font-sans text-sm font-medium text-ink"
+            >
+              Book a Call
+            </CalendlyButton>
           </div>
         </div>
       )}

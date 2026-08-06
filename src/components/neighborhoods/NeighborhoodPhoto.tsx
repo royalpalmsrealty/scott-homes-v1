@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 function PinIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -11,10 +13,43 @@ function PinIcon() {
   );
 }
 
-// TODO-CLIENT-ASSET: replace with real neighborhood photography/video per
-// build brief §7.5. Kept as an honest placeholder rather than reusing unrelated
-// interior shots, which would misrepresent each area's actual character.
-export function NeighborhoodPhoto({ name, className = "" }: { name: string; className?: string }) {
+type NeighborhoodPhotoProps = {
+  name: string;
+  className?: string;
+  /** Once a real photo is supplied (R6), pass it here — next/image renders
+   * it directly instead of the placeholder. */
+  image?: string;
+  imageAlt?: string;
+  /** Matches R6's "priority on the first two only" rule for the index/teaser grids. */
+  priority?: boolean;
+};
+
+// TODO-CLIENT-ASSET: placeholder shown whenever `image` is unset — see
+// src/lib/neighborhoods.ts `imageDirection` for what each real photo should
+// show. Kept as an honest placeholder rather than reusing unrelated interior
+// shots, which would misrepresent each area's actual character.
+export function NeighborhoodPhoto({
+  name,
+  className = "",
+  image,
+  imageAlt,
+  priority = false,
+}: NeighborhoodPhotoProps) {
+  if (image) {
+    return (
+      <div className={`relative overflow-hidden ${className}`}>
+        <Image
+          src={image}
+          alt={imageAlt ?? name}
+          fill
+          priority={priority}
+          sizes="(min-width: 1024px) 25vw, 50vw"
+          className="object-cover"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={`relative flex items-center justify-center overflow-hidden ${className}`}

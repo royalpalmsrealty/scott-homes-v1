@@ -1,0 +1,42 @@
+import Link from "next/link";
+import { SectionHeading } from "@/components/ui/SectionHeading";
+import { PropertyCard } from "@/components/listings/PropertyCard";
+import type { Listing } from "@/lib/listings/provider";
+
+export function QuickSearchResults({
+  heading,
+  intro,
+  listings,
+}: {
+  heading: string;
+  intro: string;
+  listings: Listing[];
+}) {
+  return (
+    <section className="mx-auto max-w-[1280px] px-4 py-14 sm:px-6 sm:py-24 lg:px-8">
+      <SectionHeading eyebrow="Key West Listings" heading={heading} as="h1" />
+      <p className="mt-6 max-w-2xl font-sans text-base text-body">{intro}</p>
+
+      {listings.length > 0 ? (
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {listings.map((listing) => (
+            <PropertyCard key={listing.id} listing={listing} />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-10 border border-line bg-paper p-8 text-center">
+          <p className="font-sans text-base text-body">
+            Nothing new in this window right now — check back soon, or browse everything
+            currently on the market.
+          </p>
+          <Link
+            href="/search"
+            className="mt-4 inline-flex min-h-11 items-center justify-center bg-ink px-6 py-2.5 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink"
+          >
+            Search All Key West Listings
+          </Link>
+        </div>
+      )}
+    </section>
+  );
+}

@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 // each heading/paragraph), which hugs the letterforms instead of a box.
 export function VideoTextPanel({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-col items-center px-6 py-10 text-center sm:px-16 sm:py-16">
+    <div className="flex flex-col items-center px-6 py-10 text-center sm:px-10 sm:py-16">
       {children}
     </div>
   );

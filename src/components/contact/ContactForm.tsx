@@ -2,6 +2,7 @@
 
 import { useId, useState, type FormEvent } from "react";
 import { ContactSchema, contactReasons, type ContactInput } from "@/lib/schemas/contact";
+import { CalendlyButton } from "@/components/scheduling/CalendlyButton";
 import { brand } from "@/lib/brand";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -19,6 +20,7 @@ export function ContactForm() {
   const [values, setValues] = useState<ContactInput>(initialValues);
   const [errors, setErrors] = useState<Partial<Record<keyof ContactInput, string>>>({});
   const [status, setStatus] = useState<Status>("idle");
+  const [submittedContact, setSubmittedContact] = useState<{ name: string; email: string } | null>(null);
   const formId = useId();
 
   function update<K extends keyof ContactInput>(key: K, value: ContactInput[K]) {
@@ -51,6 +53,7 @@ export function ContactForm() {
 
       if (!res.ok) throw new Error("submit-failed");
 
+      setSubmittedContact({ name: parsed.data.name, email: parsed.data.email });
       setStatus("success");
       setValues(initialValues);
     } catch {
@@ -73,13 +76,25 @@ export function ContactForm() {
           </a>
           .
         </p>
-        <button
-          type="button"
-          onClick={() => setStatus("idle")}
-          className="mt-6 inline-flex min-h-11 items-center justify-center border border-ink px-6 py-2.5 font-sans text-sm font-medium text-ink transition-colors hover:bg-teal hover:border-teal focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-deep"
-        >
-          Send another message
-        </button>
+        <p className="mt-5 font-sans text-sm text-body">
+          Want to skip the wait? Grab a slot on Scott&rsquo;s calendar directly.
+        </p>
+        <div className="mt-3 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <CalendlyButton
+            prefill={submittedContact ?? undefined}
+            utmContent="contact-form-success"
+            className="inline-flex min-h-11 items-center justify-center bg-teal px-6 py-2.5 font-sans text-sm font-medium text-ink transition-opacity hover:opacity-90"
+          >
+            Book a 15-Minute Call
+          </CalendlyButton>
+          <button
+            type="button"
+            onClick={() => setStatus("idle")}
+            className="inline-flex min-h-11 items-center justify-center border border-ink px-6 py-2.5 font-sans text-sm font-medium text-ink transition-colors hover:bg-teal hover:border-teal focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-deep"
+          >
+            Send another message
+          </button>
+        </div>
       </div>
     );
   }

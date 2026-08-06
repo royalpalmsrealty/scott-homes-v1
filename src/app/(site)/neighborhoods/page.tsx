@@ -23,9 +23,16 @@ export default function NeighborhoodsPage() {
         see active listings, market data, and what makes it distinct.
       </p>
 
-      <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {neighborhoods.map((neighborhood) => (
-          <NeighborhoodCard key={neighborhood.slug} neighborhood={neighborhood} />
+      <div className="mt-10 grid gap-x-10 gap-y-14 sm:grid-cols-2">
+        {neighborhoods.map((neighborhood, i) => (
+          <div key={neighborhood.slug}>
+            <NeighborhoodCard
+              neighborhood={neighborhood}
+              aspectClassName="aspect-[4/5] sm:aspect-[4/3]"
+              priority={i < 2}
+            />
+            <p className="mt-4 font-sans text-sm text-body">{neighborhood.overview[0]}</p>
+          </div>
         ))}
       </div>
     </section>
