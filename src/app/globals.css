@@ -116,6 +116,17 @@
   }
 }
 
+/* Slow ambient zoom for cinematic full-bleed video bands — subtle enough not
+   to distract, just enough to keep a static-feeling loop from reading as inert. */
+@keyframes kenburns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
 .ticker-mask {
   overflow: hidden;
   mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);

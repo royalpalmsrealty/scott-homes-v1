@@ -44,11 +44,12 @@ function loadWidgetScript(): Promise<void> {
 
 function buildUrl(prefill?: CalendlyPrefill, utmContent?: string) {
   const url = new URL(calendlyUrl);
-  // Re-skins Calendly's own page/embed chrome to match the site palette
-  // (teal accent, black text, white background) instead of Calendly's default blue.
-  url.searchParams.set("primary_color", "28bcb8");
-  url.searchParams.set("text_color", "000000");
-  url.searchParams.set("background_color", "ffffff");
+  // NOTE: previously added primary_color/text_color/background_color here to
+  // re-skin Calendly's chrome to match the site palette. Reverted — the popup
+  // widget's own client-side URL validator doesn't recognize those params and
+  // rejects the whole URL as invalid before it ever loads, breaking booking
+  // entirely. Not worth the cosmetic win; revisit only via Calendly's own
+  // account-level branding settings, not URL params.
   if (prefill?.name) url.searchParams.set("name", prefill.name);
   if (prefill?.email) url.searchParams.set("email", prefill.email);
   if (utmContent) url.searchParams.set("utm_content", utmContent);

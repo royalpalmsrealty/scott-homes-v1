@@ -156,16 +156,29 @@ export function Footer() {
           <div className="lg:border-l lg:border-white/10 lg:pl-10">
             <ColumnHeading>Explore</ColumnHeading>
             <ul className="mt-4 flex flex-col gap-3">
-              {primaryNav.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="font-sans text-sm text-white underline-offset-4 hover:text-teal hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
+              {primaryNav.flatMap((item) =>
+                "children" in item
+                  ? item.children.map((child) => (
+                      <li key={child.href}>
+                        <Link
+                          href={child.href}
+                          className="font-sans text-sm text-white underline-offset-4 hover:text-teal hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal"
+                        >
+                          {child.label}
+                        </Link>
+                      </li>
+                    ))
+                  : (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          className="font-sans text-sm text-white underline-offset-4 hover:text-teal hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal"
+                        >
+                          {item.label}
+                        </Link>
+                      </li>
+                    )
+              )}
               <li>
                 <a
                   href={rentalBookingUrl}
@@ -198,9 +211,8 @@ export function Footer() {
           <div className="lg:border-l lg:border-white/10 lg:pl-10">
             <ColumnHeading>{brand.broker.name}</ColumnHeading>
             <p className="mt-4 font-sans text-sm text-white">{brand.broker.title}</p>
-            {/* TODO-CLIENT-ASSET: individual + brokerage license numbers */}
             <p className="mt-2 font-sans text-xs text-white/80">
-              License #: TODO-CLIENT-ASSET
+              License #: BK #3045796
             </p>
           </div>
         </div>

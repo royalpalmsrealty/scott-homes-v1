@@ -9,6 +9,11 @@ import { CalendlyButton } from "@/components/scheduling/CalendlyButton";
 
 export function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Keyed by nav label rather than one boolean per dropdown — scales to any
+  // number of dropdown nav items (Buyers, Sellers, and whatever comes next)
+  // without adding a new pair of state variables each time.
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [openMobileDropdown, setOpenMobileDropdown] = useState<string | null>(null);
 
   // Lock body scroll while the mobile drawer is open.
   useEffect(() => {
@@ -16,6 +21,10 @@ export function Header() {
     return () => {
       document.body.style.overflow = "";
     };
+  }, [drawerOpen]);
+
+  useEffect(() => {
+    if (!drawerOpen) setOpenMobileDropdown(null);
   }, [drawerOpen]);
 
   return (
@@ -39,16 +48,51 @@ export function Header() {
 
         <nav aria-label="Primary" className="hidden lg:block">
           <ul className="flex items-center gap-1">
-            {primaryNav.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="inline-flex items-center px-3 py-2 font-sans text-sm font-medium text-body transition-colors hover:bg-teal hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-deep"
+            {primaryNav.map((item) =>
+              "children" in item ? (
+                <li
+                  key={item.label}
+                  className="relative"
+                  onMouseEnter={() => setOpenDropdown(item.label)}
+                  onMouseLeave={() => setOpenDropdown((open) => (open === item.label ? null : open))}
                 >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+                  <button
+                    type="button"
+                    aria-haspopup="true"
+                    aria-expanded={openDropdown === item.label}
+                    onClick={() => setOpenDropdown((open) => (open === item.label ? null : item.label))}
+                    className="inline-flex items-center gap-1 px-3 py-2 font-sans text-sm font-medium text-body transition-colors hover:bg-teal hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-deep"
+                  >
+                    {item.label}
+                    <ChevronIcon open={openDropdown === item.label} />
+                  </button>
+                  {openDropdown === item.label && (
+                    <ul className="absolute left-0 top-full z-10 min-w-[220px] border border-line bg-white py-2 shadow-[0_10px_30px_rgba(0,0,0,0.15)]">
+                      {item.children.map((child) => (
+                        <li key={child.href}>
+                          <Link
+                            href={child.href}
+                            onClick={() => setOpenDropdown(null)}
+                            className="block px-4 py-2.5 font-sans text-sm text-body transition-colors hover:bg-paper hover:text-ink"
+                          >
+                            {child.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ) : (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="inline-flex items-center px-3 py-2 font-sans text-sm font-medium text-body transition-colors hover:bg-teal hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-deep"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              )
+            )}
           </ul>
         </nav>
 
@@ -91,17 +135,48 @@ export function Header() {
               What&rsquo;s My Home Worth?
             </Link>
             <ul className="flex flex-col gap-6">
-              {primaryNav.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setDrawerOpen(false)}
-                    className="font-display text-2xl text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-deep"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
+              {primaryNav.map((item) =>
+                "children" in item ? (
+                  <li key={item.label}>
+                    <button
+                      type="button"
+                      aria-expanded={openMobileDropdown === item.label}
+                      onClick={() =>
+                        setOpenMobileDropdown((open) => (open === item.label ? null : item.label))
+                      }
+                      className="flex w-full items-center justify-between font-display text-2xl text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-deep"
+                    >
+                      {item.label}
+                      <ChevronIcon open={openMobileDropdown === item.label} />
+                    </button>
+                    {openMobileDropdown === item.label && (
+                      <ul className="mt-4 flex flex-col gap-4 border-l-2 border-teal pl-4">
+                        {item.children.map((child) => (
+                          <li key={child.href}>
+                            <Link
+                              href={child.href}
+                              onClick={() => setDrawerOpen(false)}
+                              className="font-sans text-base text-body hover:text-teal-deep"
+                            >
+                              {child.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ) : (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setDrawerOpen(false)}
+                      className="font-display text-2xl text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-deep"
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                )
+              )}
             </ul>
           </nav>
           <div className="border-t border-line px-6 py-6">
@@ -121,6 +196,21 @@ export function Header() {
         </div>
       )}
     </header>
+  );
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+    >
+      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

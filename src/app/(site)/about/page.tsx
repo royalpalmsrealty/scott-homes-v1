@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { SocialLinks } from "@/components/ui/SocialLinks";
 import { CalendlyButton } from "@/components/scheduling/CalendlyButton";
+import { CinematicVideoBand } from "@/components/media/CinematicVideoBand";
 import { brand } from "@/lib/brand";
 
 export const metadata: Metadata = {
@@ -48,6 +49,19 @@ export default function AboutPage() {
           the island&rsquo;s waterfront and transient-licensed inventory.
         </p>
       </section>
+
+      <CinematicVideoBand
+        src="/video/about-pool.webm"
+        eyebrow="The Key West Lifestyle"
+        heading="What You're Really Buying"
+      >
+        <p className="text-on-video mt-5 max-w-xl font-sans text-base text-white/90 sm:text-lg">
+          Beyond the square footage and the closing statement, a Key West property is an
+          invitation to a different pace of life — mornings by the pool, evenings that
+          don&rsquo;t rush. It&rsquo;s the part of the sale that never shows up on paper,
+          but it&rsquo;s usually the reason our clients came looking in the first place.
+        </p>
+      </CinematicVideoBand>
 
       <section className="bg-paper py-14 sm:py-24">
         <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
@@ -156,10 +170,12 @@ export default function AboutPage() {
               <p className="font-sans text-xs font-medium uppercase tracking-[0.18em] text-gold-deep">
                 Licensing
               </p>
-              {/* TODO-CLIENT-ASSET: individual + brokerage license numbers */}
               <p className="mt-2 font-sans text-sm text-muted">
-                Florida Real Estate License #: TODO-CLIENT-ASSET
+                Florida Real Estate License #: BK #3045796
               </p>
+              {/* TODO-CLIENT-ASSET: only Scott's individual broker license (BK #3045796)
+                  was confirmed — a separate brokerage entity license (typically a
+                  "CQ" number in FL) hasn't been supplied yet. Confirm before removing this line. */}
               <p className="font-sans text-sm text-muted">
                 {brand.brokerage} Brokerage License #: TODO-CLIENT-ASSET
               </p>

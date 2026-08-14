@@ -57,11 +57,27 @@ export const socialPlatforms = [
 
 export const rentalBookingUrl = "https://book.hostfully.com/royal-palms-realty/search";
 
+// The "Buyers" and "Sellers" nav items are dropdowns, not plain links — built
+// out one entry at a time as the client supplies content for each.
+export const buyersMenu = [
+  { label: "Utility Setup", href: "/buyers/utility-setup" },
+  { label: "Homestead Info", href: "/buyers/homestead-info" },
+  { label: "HARC Guidelines", href: "/buyers/harc-guidelines" },
+] as const;
+
+export const sellMenu = [
+  { label: "Listing Property", href: "/sell/listing-property" },
+  { label: "Sell Faster", href: "/sell/sell-faster" },
+  { label: "Open House Tips", href: "/sell/open-house-tips" },
+  { label: "Showing Guide", href: "/sell/showing-guide" },
+] as const;
+
 export const primaryNav = [
   { label: "Search", href: "/search" },
   { label: "Neighborhoods", href: "/neighborhoods" },
   { label: "Rentals", href: "/rentals" },
-  { label: "Sell", href: "/sell" },
+  { label: "Buyers", children: buyersMenu },
+  { label: "Sellers", children: sellMenu },
   { label: "Blog", href: "/blog" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
