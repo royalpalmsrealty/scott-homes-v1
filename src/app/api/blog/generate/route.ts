@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthed } from "@/lib/adminAuth";
-import { isAnthropicConfigured } from "@/lib/ai/anthropic";
+import { isOpenAIConfigured } from "@/lib/ai/openai";
 import { generateBlogDraft, extractVerifyWarnings } from "@/lib/ai/blogWriter";
 import { createPost } from "@/lib/blog/store";
 
@@ -9,9 +9,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!isAnthropicConfigured()) {
+  if (!isOpenAIConfigured()) {
     return NextResponse.json(
-      { error: "Anthropic API key not configured yet — the AI writer will work once it's set. See D1." },
+      { error: "OpenAI API key not configured yet — the AI writer will work once it's set." },
       { status: 503 }
     );
   }
@@ -32,6 +32,8 @@ export async function POST(request: Request) {
       tags: draft.tags,
       author: "Scott Forman",
       body: draft.body,
+      coverImage: draft.coverImage,
+      coverImageAlt: draft.coverImageAlt,
       ctaText: draft.ctaText,
       verifyWarnings: extractVerifyWarnings(draft.body),
       relatedSlugs: draft.suggestedInternalLinks,

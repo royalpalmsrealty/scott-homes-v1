@@ -1,21 +1,59 @@
 import { cookies } from "next/headers";
+import { getSupabase, isSupabaseConfigured } from "./supabase";
+import { verifySessionToken } from "./adminSession";
 
-// Deliberately minimal — a shared-password cookie, not real user accounts,
-// roles, or a session store. This is NOT how the eventual CMS should
-// authenticate Scott; it exists only so the blog admin panel is unable to
-// be edited by literally anyone who finds the URL. See D2.
+// The admin password itself lives in Supabase (app_config table, key
+// "admin_password") — set/changed by running SQL in the Supabase dashboard,
+// not via an env var. SESSION_SECRET only signs the session cookie; it never
+// needs to change once set.
 export const ADMIN_COOKIE_NAME = "rpr_admin_session";
 
+// NODE_ENV is "production" for any production build, including a local
+// `npm run start` served over plain http:// — that's not the same thing as
+// "actually served over https". VERCEL is only ever set inside Vercel's own
+// build/runtime (always https there), so it's the accurate signal for
+// whether the Secure cookie attribute is safe to set.
+export const COOKIE_SECURE = Boolean(process.env.VERCEL);
+
 export function isAdminPasswordConfigured() {
-  return Boolean(process.env.ADMIN_PASSWORD);
+  return isSupabaseConfigured() && Boolean(process.env.SESSION_SECRET);
+}
+
+export async function verifyAdminPassword(password: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) {
+    console.error("[admin-login] rejected: SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set in this environment");
+    return false;
+  }
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("app_config")
+    .select("value")
+    .eq("key", "admin_password")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin-login] rejected: Supabase query failed:", error.message);
+    return false;
+  }
+  if (!data?.value) {
+    console.error("[admin-login] rejected: no admin_password row found in app_config");
+    return false;
+  }
+  const match = data.value === password;
+  if (!match) {
+    console.error(
+      `[admin-login] rejected: password mismatch (db value is ${data.value.length} chars, submitted value is ${password.length} chars)`
+    );
+  }
+  return match;
 }
 
 export async function isAdminAuthed(): Promise<boolean> {
-  // No password configured yet — access is intentionally left open so the
-  // panel can be demoed/tested, but every admin page shows a loud warning.
-  // Set ADMIN_PASSWORD before this goes anywhere real.
+  // No Supabase/session-secret configured yet — same intentional "open, but
+  // the layout shows a loud warning banner" placeholder as before.
   if (!isAdminPasswordConfigured()) return true;
 
   const cookieStore = await cookies();
-  return cookieStore.get(ADMIN_COOKIE_NAME)?.value === process.env.ADMIN_PASSWORD;
+  const token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
+  return verifySessionToken(token, process.env.SESSION_SECRET!);
 }

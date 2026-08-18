@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import { CalendlyButton } from "@/components/scheduling/CalendlyButton";
+import { brand } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: "Utilities Set Up Instructions and Forms",
   description:
     "Step-by-step instructions for setting up Keys Energy, FKAA water, and Comcast service after your Key West home closing.",
-};
-
-const sara = {
-  name: "Sara Hallett",
-  credentials: "M.A., Administrative Assistant / Licensed Sales Agent",
-  email: "Sara@RoyalPalmsRealty.com",
-  phone: "305-434-5389",
 };
 
 export default function UtilitySetupPage() {
@@ -138,32 +132,32 @@ export default function UtilitySetupPage() {
           {/* Forms note — no PDFs supplied yet, so no fake download links. */}
           <div className="mt-10 border-l-4 border-teal bg-paper p-6 text-sm text-body">
             The Keys Energy and FKAA forms referenced above will be available to download directly from this
-            page once uploaded — for now, {sara.name.split(" ")[0]} will send them to you directly by email.
+            page once uploaded — for now, our office will send them to you directly by email.
           </div>
         </div>
 
         {/* Contact card */}
         <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
           <div className="border border-line p-6 sm:p-8">
-            <Image
-              src="/buyers/sara-hallett.png"
-              alt={sara.name}
-              width={504}
-              height={299}
-              className="h-auto w-full object-contain"
-            />
-            <p className="mt-5 font-display text-lg text-ink">{sara.name}</p>
-            <p className="mt-1 font-sans text-xs text-muted">{sara.credentials}</p>
-            <div className="mt-5 flex flex-col gap-2.5">
+            <p className="font-sans text-xs font-medium uppercase tracking-[0.18em] text-gold-deep">
+              Questions About Setup?
+            </p>
+            <p className="mt-3 font-sans text-sm text-body">
+              Reach out to our office directly and we&rsquo;ll walk you through the forms and next steps.
+            </p>
+            <div className="mt-4 flex flex-col gap-3">
               <a
-                href={`mailto:${sara.email}`}
-                className="font-sans text-sm text-teal-deep hover:underline"
+                href={brand.phone.href}
+                className="inline-flex min-h-11 items-center justify-center bg-ink px-5 py-2.5 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink"
               >
-                {sara.email}
+                Call {brand.phone.display}
               </a>
-              <a href={`tel:${sara.phone.replace(/-/g, "")}`} className="font-sans text-sm text-teal-deep hover:underline">
-                {sara.phone}
-              </a>
+              <CalendlyButton
+                utmContent="utility-setup-page"
+                className="inline-flex min-h-11 items-center justify-center bg-teal px-5 py-2.5 font-sans text-sm font-medium text-ink transition-opacity hover:opacity-90"
+              >
+                Book a 15-Minute Call
+              </CalendlyButton>
             </div>
           </div>
         </div>

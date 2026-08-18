@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BlogBody } from "@/components/blog/BlogBody";
@@ -106,6 +107,19 @@ export default async function BlogArticlePage({
             </p>
           </div>
         </div>
+
+        {post.coverImage && (
+          <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-2xl shadow-sm">
+            <Image
+              src={post.coverImage}
+              alt={post.coverImageAlt ?? post.title}
+              fill
+              priority
+              sizes="(min-width: 760px) 760px, 100vw"
+              className="object-cover"
+            />
+          </div>
+        )}
 
         {showToc && (
           <nav aria-label="Table of contents" className="mt-8 border border-line bg-paper p-5">

@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthed } from "@/lib/adminAuth";
-import { isAnthropicConfigured } from "@/lib/ai/anthropic";
+import { isOpenAIConfigured } from "@/lib/ai/openai";
 import { continueWriting } from "@/lib/ai/blogWriter";
 
 export async function POST(request: Request) {
   if (!(await isAdminAuthed())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!isAnthropicConfigured()) {
+  if (!isOpenAIConfigured()) {
     return NextResponse.json({ error: "AI writer not configured yet." }, { status: 503 });
   }
 

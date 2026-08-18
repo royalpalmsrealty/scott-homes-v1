@@ -26,6 +26,8 @@ export const neighborhoods: Neighborhood[] = [
     name: "Old Town",
     tileBlurb: "Historic Conch houses, Duval Street, and Mallory Square.",
     imageDirection: "Conch house with gingerbread trim, Duval or Whitehead streetscape",
+    image: "/neighborhoods/old-town.jpg",
+    imageAlt: "Historic Conch houses lining a street in Old Town, Key West",
     overview: [
       "Old Town is Key West's historic core — narrow lanes lined with 19th-century Conch houses, gingerbread trim, and mature tropical landscaping, all within walking distance of Duval Street and Mallory Square.",
       "It's the most tourist-facing part of the island and one of the most residential at the same time: short-term rental and transient-licensed properties sit block-to-block with quiet family homes. Buyers come here for walkability, architectural character, and the ability to be part of the island's daily rhythm rather than removed from it.",
@@ -39,6 +41,8 @@ export const neighborhoods: Neighborhood[] = [
     name: "Casa Marina",
     tileBlurb: "Beachfront estates near the historic Casa Marina Resort.",
     imageDirection: "Beachfront, palm-lined residential street, historic estate frontage",
+    image: "/neighborhoods/casa-marina.jpg",
+    imageAlt: "The historic Casa Marina resort and beachfront in Key West",
     overview: [
       "Casa Marina takes its name from the historic resort at its center and covers the beachfront district on Key West's Atlantic side. It's the closest thing the island has to a true beach neighborhood, with wider lots, mature landscaping, and direct or near-direct beach access.",
       "This is where Key West's largest and most architecturally significant homes tend to concentrate — a mix of restored historic estates and newer luxury construction, generally commanding the island's highest price points.",
@@ -52,6 +56,8 @@ export const neighborhoods: Neighborhood[] = [
     name: "The Meadows",
     tileBlurb: "A leafy historic district known for its tree canopy.",
     imageDirection: "Quiet tree-canopied residential lane",
+    image: "/neighborhoods/the-meadows.jpg",
+    imageAlt: "A leafy, tree-canopied residential street in The Meadows, Key West",
     overview: [
       "The Meadows is a historic residential pocket within Old Town, distinguished by its dense tree canopy and Bahamian-influenced cottage architecture — smaller in scale than the grander Casa Marina estates, but just as historically protected.",
       "It's popular with buyers who want the character and walkability of Old Town in a quieter, more shaded residential setting away from the Duval Street crowds.",
@@ -65,6 +71,8 @@ export const neighborhoods: Neighborhood[] = [
     name: "Truman Annex",
     tileBlurb: "Gated, waterfront, and steps from Fort Zachary Taylor.",
     imageDirection: "White colonnaded architecture, Presidential Gates, harbourfront",
+    image: "/neighborhoods/truman-annex.jpg",
+    imageAlt: "Gated waterfront homes in Truman Annex, Key West",
     overview: [
       "Truman Annex occupies what was once a naval property at the island's western tip, redeveloped into one of Key West's most exclusive gated communities. Streets are wide, quiet, and shaded, with direct proximity to Fort Zachary Taylor's beach and the Truman Waterfront.",
       "Homes here range from restored historic residences to purpose-built luxury construction, and the gated setting draws buyers who want Old Town's location without Old Town's density.",
@@ -78,6 +86,8 @@ export const neighborhoods: Neighborhood[] = [
     name: "Sunset Key",
     tileBlurb: "A private island reached only by ferry.",
     imageDirection: "Island cottages from the water, ferry approach, sunset over the channel",
+    image: "/neighborhoods/sunset-key.jpg",
+    imageAlt: "Sunset Key's private island cottages in Key West",
     overview: [
       "Sunset Key is a private island a short ferry ride from Key West Bight, developed exclusively with luxury homes and a resort-operated cottage collection. There are no cars, no through traffic, and no public access — privacy is effectively the product.",
       "It's the most exclusive address in the Key West market, drawing buyers who want island living with a level of seclusion the main island simply can't offer.",
@@ -91,6 +101,8 @@ export const neighborhoods: Neighborhood[] = [
     name: "Shark Key",
     tileBlurb: "Gated waterfront estates on a private mangrove island.",
     imageDirection: "Gated waterfront estates, private beach, mangrove channel",
+    image: "/neighborhoods/shark-key.jpg",
+    imageAlt: "A gated waterfront estate on Shark Key, near Key West",
     overview: [
       "Shark Key is a small, gated island a short drive from Key West proper, developed exclusively with large waterfront estates set among protected mangrove channels. Access is restricted to residents and their guests.",
       "It draws buyers who want serious acreage and deep water access without being on the main island at all — a different trade than Sunset Key's walk-to-everything seclusion, closer in spirit to a private compound.",
@@ -104,6 +116,8 @@ export const neighborhoods: Neighborhood[] = [
     name: "Key Haven",
     tileBlurb: "A quieter island community connected by a short causeway.",
     imageDirection: "Canal-front homes with docks and boats",
+    image: "/neighborhoods/key-haven.jpg",
+    imageAlt: "Canal-front homes with private docks in Key Haven",
     overview: [
       "Key Haven sits just off Key West proper, connected by a short causeway — technically its own small island, and noticeably quieter and more suburban than anything in town.",
       "Canal-front lots with private docks are common here, making it a natural fit for boat owners who want deep water access without the density (or the price point) of Casa Marina or Truman Annex.",
@@ -117,6 +131,8 @@ export const neighborhoods: Neighborhood[] = [
     name: "Midtown West",
     tileBlurb: "Newer single-family streets with a practical, residential feel.",
     imageDirection: "Newer single-family streets, practical residential character",
+    image: "/neighborhoods/midtown-west.jpg",
+    imageAlt: "A single-family residential street in Midtown West, Key West",
     overview: [
       "Midtown West sits toward the center of the island, built out with more conventional single-family homes than Old Town's historic Conch construction — practical, residential streets rather than tourist-facing ones.",
       "It's a natural fit for buyers who want to live on the island year-round without paying Old Town's premium, close enough to bike or drive into the historic district in minutes.",

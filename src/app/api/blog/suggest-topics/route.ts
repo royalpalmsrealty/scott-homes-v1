@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthed } from "@/lib/adminAuth";
-import { isAnthropicConfigured } from "@/lib/ai/anthropic";
+import { isOpenAIConfigured } from "@/lib/ai/openai";
 import { suggestBlogTopics } from "@/lib/ai/blogWriter";
 
 export async function POST() {
@@ -8,11 +8,11 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!isAnthropicConfigured()) {
+  if (!isOpenAIConfigured()) {
     return NextResponse.json({
       topics: [],
       disabled: true,
-      message: "Anthropic API key not configured yet — topic suggestions will work once it's set.",
+      message: "OpenAI API key not configured yet — topic suggestions will work once it's set.",
     });
   }
 

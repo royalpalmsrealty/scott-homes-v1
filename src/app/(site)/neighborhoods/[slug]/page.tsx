@@ -60,7 +60,13 @@ export default async function NeighborhoodPage({
         }}
       />
 
-      <NeighborhoodPhoto name={neighborhood.name} className="h-[40vh] min-h-[280px] w-full" />
+      <NeighborhoodPhoto
+        name={neighborhood.name}
+        image={neighborhood.image}
+        imageAlt={neighborhood.imageAlt}
+        priority
+        className="h-[40vh] min-h-[280px] w-full"
+      />
 
       <section className="mx-auto max-w-[1280px] px-4 py-14 sm:px-6 sm:py-24 lg:px-8">
         <SectionHeading eyebrow="Key West Neighborhood" heading={neighborhood.name} as="h1" />

@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { ChatRequestSchema } from "@/lib/schemas/chat";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { isAnthropicConfigured, callClaudeRaw, type Message } from "@/lib/ai/anthropic";
+import {
+  isOpenAIConfigured,
+  callOpenAIRaw,
+  extractFunctionCalls,
+  extractFinalText,
+  type ResponsesInputItem,
+} from "@/lib/ai/openai";
 import { CHAT_SYSTEM_PROMPT } from "@/lib/ai/chatSystemPrompt";
 import { CHAT_TOOLS, executeChatTool, type ClientAction } from "@/lib/ai/chatTools";
+import { getVectorStoreId } from "@/lib/ai/knowledgeBase";
 import { brand } from "@/lib/brand";
 
 const MAX_TOOL_ROUNDTRIPS = 4;
@@ -26,12 +33,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  if (!isAnthropicConfigured()) {
+  if (!isOpenAIConfigured()) {
     // Dummy-key-safe fallback — never a broken or silent chat window.
     return NextResponse.json({ reply: OFFLINE_REPLY, clientActions: [], disabled: true });
   }
 
-  const messages: Message[] = parsed.data.messages.map((m) => ({
+  const input: ResponsesInputItem[] = parsed.data.messages.map((m) => ({
     role: m.role,
     content: m.content,
   }));
@@ -39,39 +46,41 @@ export async function POST(request: Request) {
   const clientActions: ClientAction[] = [];
   let finalText = "";
 
+  // Only added once documents actually exist to search — otherwise the tool
+  // list stays exactly as it was before the knowledge base existed.
+  const vectorStoreId = (await getVectorStoreId()) ?? undefined;
+
   try {
     for (let i = 0; i < MAX_TOOL_ROUNDTRIPS; i++) {
-      const data = await callClaudeRaw({
+      const data = await callOpenAIRaw({
         system: CHAT_SYSTEM_PROMPT,
-        messages,
+        input,
         tools: CHAT_TOOLS,
-        maxTokens: 800,
+        fileSearchVectorStoreId: vectorStoreId,
+        maxOutputTokens: 800,
       });
 
-      const toolUseBlocks = data.content.filter((b) => b.type === "tool_use");
+      const functionCalls = extractFunctionCalls(data);
 
-      if (data.stop_reason !== "tool_use" || toolUseBlocks.length === 0) {
-        finalText = data.content
-          .filter((b): b is { type: "text"; text: string } => b.type === "text")
-          .map((b) => b.text)
-          .join("\n");
+      if (functionCalls.length === 0) {
+        finalText = extractFinalText(data);
         break;
       }
 
-      messages.push({ role: "assistant", content: data.content });
+      // Echo the model's own function_call items back before the results —
+      // the Responses API needs both, matched by call_id, on the next turn.
+      input.push(...functionCalls);
 
-      const resultBlocks = [];
-      for (const block of toolUseBlocks) {
-        if (block.type !== "tool_use") continue;
-        const { result, clientAction } = await executeChatTool(block.name, block.input);
+      for (const call of functionCalls) {
+        const callInput = JSON.parse(call.arguments || "{}");
+        const { result, clientAction } = await executeChatTool(call.name, callInput);
         if (clientAction) clientActions.push(clientAction);
-        resultBlocks.push({
-          type: "tool_result" as const,
-          tool_use_id: block.id,
-          content: JSON.stringify(result),
+        input.push({
+          type: "function_call_output",
+          call_id: call.call_id,
+          output: JSON.stringify(result),
         });
       }
-      messages.push({ role: "user", content: resultBlocks });
     }
   } catch (error) {
     console.error("Chat request failed", error);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { weeklyAutoDraftEnabled } from "@/lib/siteConfig";
-import { isAnthropicConfigured } from "@/lib/ai/anthropic";
+import { isOpenAIConfigured } from "@/lib/ai/openai";
 import { generateBlogDraft, suggestBlogTopics, extractVerifyWarnings } from "@/lib/ai/blogWriter";
 import { createPost, setPendingApproval } from "@/lib/blog/store";
 import { brand } from "@/lib/brand";
@@ -16,8 +16,8 @@ export async function GET(request: Request) {
   if (!weeklyAutoDraftEnabled) {
     return NextResponse.json({ skipped: true, reason: "weeklyAutoDraftEnabled is off" });
   }
-  if (!isAnthropicConfigured()) {
-    return NextResponse.json({ skipped: true, reason: "Anthropic API key not configured" });
+  if (!isOpenAIConfigured()) {
+    return NextResponse.json({ skipped: true, reason: "OpenAI API key not configured" });
   }
 
   try {
@@ -37,6 +37,8 @@ export async function GET(request: Request) {
       tags: draft.tags,
       author: "Scott Forman",
       body: draft.body,
+      coverImage: draft.coverImage,
+      coverImageAlt: draft.coverImageAlt,
       ctaText: draft.ctaText,
       verifyWarnings: extractVerifyWarnings(draft.body),
       relatedSlugs: draft.suggestedInternalLinks,

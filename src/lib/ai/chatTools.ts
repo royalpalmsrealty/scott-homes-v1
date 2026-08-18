@@ -1,4 +1,4 @@
-import type { Tool } from "./anthropic";
+import type { ToolDef } from "./toolTypes";
 import { listingProvider } from "@/lib/listings/provider";
 import { getNeighborhood, neighborhoods } from "@/lib/neighborhoods";
 import { isGhlConfigured, sendToGhl } from "@/lib/ghl";
@@ -6,7 +6,7 @@ import { queueLead } from "@/lib/leadQueue";
 
 const neighborhoodNames = neighborhoods.map((n) => n.name);
 
-export const CHAT_TOOLS: Tool[] = [
+export const CHAT_TOOLS: ToolDef[] = [
   {
     name: "searchListings",
     description: "Search current Key West listings by neighborhood, price range, or bedroom count. Returns real listing data — never invent listings yourself.",

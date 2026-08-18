@@ -86,7 +86,7 @@ export default async function BlogIndexPage({
         <>
           {pageNum === 1 && featured && (
             <div className="mt-10">
-              <BlogCard post={featured} />
+              <BlogCard post={featured} featured />
             </div>
           )}
 

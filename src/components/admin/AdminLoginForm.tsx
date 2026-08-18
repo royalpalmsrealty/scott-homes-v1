@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { AdminLogo } from "./AdminLogo";
 
 export function AdminLoginForm() {
   const [password, setPassword] = useState("");
@@ -32,25 +33,42 @@ export function AdminLoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-sm border border-line bg-white p-8">
-      <p className="font-display text-xl text-ink">Admin Sign-In</p>
-      <p className="mt-2 font-sans text-sm text-muted">Royal Palms Realty content admin</p>
-      <label htmlFor="admin-password" className="mt-6 block font-sans text-sm font-medium text-ink">
+    <form
+      onSubmit={handleSubmit}
+      className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-10"
+    >
+      <AdminLogo size={64} />
+
+      <p className="mt-5 font-display text-2xl text-white">Admin Sign-In</p>
+      <p className="mt-1.5 font-sans text-sm text-white/50">Royal Palms Realty content admin</p>
+
+      <label htmlFor="admin-password" className="mt-7 block font-sans text-xs font-medium uppercase tracking-wide text-white/60">
         Password
       </label>
-      <input
-        id="admin-password"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="mt-1.5 block w-full border border-line px-4 py-2.5 font-sans text-base text-ink focus:border-ink focus:outline-none"
-        autoFocus
-      />
-      {error && <p className="mt-2 font-sans text-sm text-gold-deep">{error}</p>}
+      <div className="mt-2 flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-3 transition-colors focus-within:border-teal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-white/40">
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+        </svg>
+        <input
+          id="admin-password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full bg-transparent font-sans text-sm text-white placeholder:text-white/30 focus:outline-none"
+          placeholder="Enter password"
+          autoFocus
+        />
+      </div>
+
+      {error && (
+        <p className="mt-3 rounded-lg bg-gold/10 px-3 py-2 font-sans text-sm text-gold">{error}</p>
+      )}
+
       <button
         type="submit"
         disabled={loading}
-        className="mt-5 flex min-h-11 w-full items-center justify-center bg-ink font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink disabled:opacity-60"
+        className="mt-6 flex min-h-11 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--teal)_0%,var(--gold)_100%)] px-6 font-sans text-sm font-semibold text-ink transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
       >
         {loading ? "Signing in…" : "Sign In"}
       </button>

@@ -1,65 +1,117 @@
-import { promises as fs } from "fs";
-import path from "path";
-import crypto from "crypto";
+import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { BlogPost, BlogPostStatus } from "./types";
-import { seedPosts } from "./seed";
 
-// JSON-file-backed store — the "lightweight config now" approach (see D2).
-// Swap this file's internals for real database calls once a CMS/DB is
-// chosen; nothing outside this file should touch the JSON directly.
-const DATA_DIR = path.join(process.cwd(), ".data");
-const DATA_FILE = path.join(DATA_DIR, "blog-posts.json");
+// Supabase-backed store — see supabase/schema.sql for the table. Column
+// names are snake_case in the DB; fromRow/toRow are the only place that
+// translates between that and the camelCase BlogPost type used everywhere else.
+type BlogPostRow = {
+  id: string;
+  slug: string;
+  title: string;
+  seo_title: string;
+  meta_description: string;
+  category: string;
+  tags: string[];
+  author: string;
+  body: string;
+  cover_image: string | null;
+  cover_image_alt: string | null;
+  status: BlogPostStatus;
+  created_at: string;
+  published_at: string | null;
+  cta_text: string | null;
+  cta_href: string | null;
+  verify_warnings: string[];
+  related_slugs: string[] | null;
+};
 
-async function readAll(): Promise<BlogPost[]> {
-  try {
-    const raw = await fs.readFile(DATA_FILE, "utf8");
-    return JSON.parse(raw);
-  } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.writeFile(DATA_FILE, JSON.stringify(seedPosts, null, 2), "utf8");
-    return seedPosts;
-  }
+function fromRow(row: BlogPostRow): BlogPost {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    seoTitle: row.seo_title,
+    metaDescription: row.meta_description,
+    category: row.category,
+    tags: row.tags,
+    author: row.author,
+    body: row.body,
+    coverImage: row.cover_image ?? undefined,
+    coverImageAlt: row.cover_image_alt ?? undefined,
+    status: row.status,
+    createdAt: row.created_at,
+    publishedAt: row.published_at ?? undefined,
+    ctaText: row.cta_text ?? undefined,
+    ctaHref: row.cta_href ?? undefined,
+    verifyWarnings: row.verify_warnings ?? [],
+    relatedSlugs: row.related_slugs ?? undefined,
+  };
 }
 
-async function writeAll(posts: BlogPost[]) {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(DATA_FILE, JSON.stringify(posts, null, 2), "utf8");
+function toRow(post: Partial<BlogPost>): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  if (post.slug !== undefined) row.slug = post.slug;
+  if (post.title !== undefined) row.title = post.title;
+  if (post.seoTitle !== undefined) row.seo_title = post.seoTitle;
+  if (post.metaDescription !== undefined) row.meta_description = post.metaDescription;
+  if (post.category !== undefined) row.category = post.category;
+  if (post.tags !== undefined) row.tags = post.tags;
+  if (post.author !== undefined) row.author = post.author;
+  if (post.body !== undefined) row.body = post.body;
+  if (post.coverImage !== undefined) row.cover_image = post.coverImage ?? null;
+  if (post.coverImageAlt !== undefined) row.cover_image_alt = post.coverImageAlt ?? null;
+  if (post.ctaText !== undefined) row.cta_text = post.ctaText ?? null;
+  if (post.ctaHref !== undefined) row.cta_href = post.ctaHref ?? null;
+  if (post.verifyWarnings !== undefined) row.verify_warnings = post.verifyWarnings;
+  if (post.relatedSlugs !== undefined) row.related_slugs = post.relatedSlugs ?? null;
+  return row;
 }
 
+// Reads are dummy-safe (return empty/undefined rather than throw) because
+// blog pages are statically generated — build time has no Supabase
+// credentials available until they're actually set, and a throw here would
+// fail the entire site's build, not just the blog. Writes (below) are only
+// ever called from admin API routes at runtime, so they throw normally;
+// those routes already catch and return a proper error response.
 export async function getAllPosts(): Promise<BlogPost[]> {
-  return readAll();
+  if (!isSupabaseConfigured()) return [];
+  const { data, error } = await getSupabase().from("blog_posts").select("*");
+  if (error) return [];
+  return (data as BlogPostRow[]).map(fromRow);
 }
 
 export async function getPublishedPosts(): Promise<BlogPost[]> {
-  const posts = await readAll();
-  return posts
-    .filter((p) => p.status === "published")
-    .sort((a, b) => new Date(b.publishedAt ?? b.createdAt).getTime() - new Date(a.publishedAt ?? a.createdAt).getTime());
+  if (!isSupabaseConfigured()) return [];
+  const { data, error } = await getSupabase()
+    .from("blog_posts")
+    .select("*")
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
+  if (error) return [];
+  return (data as BlogPostRow[]).map(fromRow);
 }
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | undefined> {
-  const posts = await readAll();
-  return posts.find((p) => p.slug === slug);
+  if (!isSupabaseConfigured()) return undefined;
+  const { data, error } = await getSupabase().from("blog_posts").select("*").eq("slug", slug).maybeSingle();
+  if (error || !data) return undefined;
+  return fromRow(data as BlogPostRow);
 }
 
 export async function getPostById(id: string): Promise<BlogPost | undefined> {
-  const posts = await readAll();
-  return posts.find((p) => p.id === id);
+  if (!isSupabaseConfigured()) return undefined;
+  const { data, error } = await getSupabase().from("blog_posts").select("*").eq("id", id).maybeSingle();
+  if (error || !data) return undefined;
+  return fromRow(data as BlogPostRow);
 }
 
 export async function createPost(
   input: Omit<BlogPost, "id" | "createdAt" | "status" | "publishedAt"> & { status?: "draft" | "pending_approval" }
 ): Promise<BlogPost> {
-  const posts = await readAll();
-  const post: BlogPost = {
-    ...input,
-    id: crypto.randomUUID(),
-    status: input.status ?? "draft",
-    createdAt: new Date().toISOString(),
-  };
-  posts.push(post);
-  await writeAll(posts);
-  return post;
+  const row = { ...toRow(input), status: input.status ?? "draft" };
+  const { data, error } = await getSupabase().from("blog_posts").insert(row).select().single();
+  if (error) throw new Error(`Failed to create post: ${error.message}`);
+  return fromRow(data as BlogPostRow);
 }
 
 // Explicitly cannot set status to "published" — see publishPost() below,
@@ -69,48 +121,45 @@ export async function updatePost(
   id: string,
   patch: Partial<Omit<BlogPost, "id" | "status" | "publishedAt">>
 ): Promise<BlogPost> {
-  const posts = await readAll();
-  const index = posts.findIndex((p) => p.id === id);
-  if (index === -1) throw new Error(`Post ${id} not found`);
-
-  posts[index] = { ...posts[index], ...patch };
-  await writeAll(posts);
-  return posts[index];
+  const { data, error } = await getSupabase().from("blog_posts").update(toRow(patch)).eq("id", id).select().single();
+  if (error) throw new Error(`Post ${id} not found`);
+  return fromRow(data as BlogPostRow);
 }
 
 export async function setPendingApproval(id: string): Promise<BlogPost> {
-  const posts = await readAll();
-  const index = posts.findIndex((p) => p.id === id);
-  if (index === -1) throw new Error(`Post ${id} not found`);
-  if (posts[index].status === "published") {
+  const existing = await getPostById(id);
+  if (!existing) throw new Error(`Post ${id} not found`);
+  if (existing.status === "published") {
     throw new Error("Cannot move a published post back to pending_approval here");
   }
-
-  posts[index] = { ...posts[index], status: "pending_approval" as BlogPostStatus };
-  await writeAll(posts);
-  return posts[index];
+  const { data, error } = await getSupabase()
+    .from("blog_posts")
+    .update({ status: "pending_approval" })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw new Error(`Post ${id} not found`);
+  return fromRow(data as BlogPostRow);
 }
 
 // The single publish path. Called only from the admin "Publish" button's
 // API route — never from draft generation or auto-save.
 export async function publishPost(id: string): Promise<BlogPost> {
-  const posts = await readAll();
-  const index = posts.findIndex((p) => p.id === id);
-  if (index === -1) throw new Error(`Post ${id} not found`);
-  if (posts[index].status !== "pending_approval") {
+  const existing = await getPostById(id);
+  if (!existing) throw new Error(`Post ${id} not found`);
+  if (existing.status !== "pending_approval") {
     throw new Error("Only posts in pending_approval can be published");
   }
-
-  posts[index] = {
-    ...posts[index],
-    status: "published" as BlogPostStatus,
-    publishedAt: new Date().toISOString(),
-  };
-  await writeAll(posts);
-  return posts[index];
+  const { data, error } = await getSupabase()
+    .from("blog_posts")
+    .update({ status: "published", published_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw new Error(`Post ${id} not found`);
+  return fromRow(data as BlogPostRow);
 }
 
 export async function deletePost(id: string): Promise<void> {
-  const posts = await readAll();
-  await writeAll(posts.filter((p) => p.id !== id));
+  await getSupabase().from("blog_posts").delete().eq("id", id);
 }

@@ -1,4 +1,6 @@
-import { callClaude, extractJson } from "./anthropic";
+import { callOpenAI } from "./openai";
+import { extractJson } from "./anthropic";
+import { generateAndStoreCoverImage } from "./blogImage";
 import { BlogDraftSchema, type BlogDraft } from "@/lib/schemas/blogDraft";
 import { blogHouseStylePrompt } from "@/lib/siteConfig";
 import { neighborhoods } from "@/lib/neighborhoods";
@@ -28,38 +30,50 @@ Return ONLY a JSON object, no prose, no markdown fences, with exactly these keys
 }`;
 }
 
-export async function generateBlogDraft(topic: string): Promise<BlogDraft> {
-  const text = await callClaude({
+export type BlogDraftWithImage = BlogDraft & { coverImage?: string; coverImageAlt?: string };
+
+export async function generateBlogDraft(topic: string): Promise<BlogDraftWithImage> {
+  const text = await callOpenAI({
     system: draftSystemPrompt(),
-    messages: [{ role: "user", content: `Topic: ${topic}` }],
-    maxTokens: 3000,
+    prompt: `Topic: ${topic}`,
+    maxOutputTokens: 3000,
   });
-  return BlogDraftSchema.parse(extractJson(text));
+  const draft = BlogDraftSchema.parse(extractJson(text));
+
+  // Best-effort — a failed image generation never blocks the draft itself.
+  const image = await generateAndStoreCoverImage({
+    slug: draft.slug,
+    title: draft.title,
+    category: draft.category,
+    imageKeywords: draft.imageKeywords,
+  });
+
+  return { ...draft, coverImage: image?.url, coverImageAlt: image?.alt };
 }
 
 export async function suggestBlogTopics(): Promise<string[]> {
-  const text = await callClaude({
+  const text = await callOpenAI({
     system: `You suggest blog topic ideas for a Key West, Florida real estate brokerage's website. Angles to draw from: local market activity, neighborhood guides, lifestyle/relocation, buyer and seller education, and search terms locals and prospective buyers actually use. Return ONLY a JSON array of exactly 10 short topic strings, no prose, no markdown fences.`,
-    messages: [{ role: "user", content: "Suggest 10 topics." }],
-    maxTokens: 500,
+    prompt: "Suggest 10 topics.",
+    maxOutputTokens: 500,
   });
   const parsed = extractJson(text);
   return Array.isArray(parsed) ? parsed.filter((t): t is string => typeof t === "string") : [];
 }
 
 export async function regenerateParagraph(paragraph: string, instruction: string): Promise<string> {
-  return callClaude({
+  return callOpenAI({
     system: `${blogHouseStylePrompt}\n\nYou are revising one paragraph of an existing blog post. Return ONLY the rewritten paragraph — no preamble, no explanation, no quotes around it.`,
-    messages: [{ role: "user", content: `Instruction: ${instruction}\n\nParagraph:\n${paragraph}` }],
-    maxTokens: 600,
+    prompt: `Instruction: ${instruction}\n\nParagraph:\n${paragraph}`,
+    maxOutputTokens: 600,
   });
 }
 
 export async function continueWriting(currentBody: string): Promise<string> {
-  return callClaude({
+  return callOpenAI({
     system: `${blogHouseStylePrompt}\n\nContinue the blog post below with 2-3 more paragraphs in the same voice and formatting convention (blank-line-separated paragraphs, "## Heading" for sections). Return ONLY the new paragraphs to append — not the original text.`,
-    messages: [{ role: "user", content: currentBody }],
-    maxTokens: 1000,
+    prompt: currentBody,
+    maxOutputTokens: 1000,
   });
 }
 

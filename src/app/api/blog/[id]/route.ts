@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthed } from "@/lib/adminAuth";
-import { getPostById, updatePost } from "@/lib/blog/store";
+import { getPostById, updatePost, deletePost } from "@/lib/blog/store";
 import { extractVerifyWarnings } from "@/lib/ai/blogWriter";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -32,4 +32,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+}
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await isAdminAuthed())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { id } = await params;
+  const existing = await getPostById(id);
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await deletePost(id);
+  return NextResponse.json({ ok: true });
 }

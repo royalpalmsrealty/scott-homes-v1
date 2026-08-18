@@ -116,6 +116,18 @@
   }
 }
 
+/* Chat launcher "keep noticing me" pulse — runs until the visitor has opened
+   the chat once, then stops for the rest of the session. */
+@keyframes chat-pop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
 /* Slow ambient zoom for cinematic full-bleed video bands — subtle enough not
    to distract, just enough to keep a static-feeling loop from reading as inert. */
 @keyframes kenburns {
