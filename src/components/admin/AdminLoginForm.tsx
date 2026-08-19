@@ -37,10 +37,12 @@ export function AdminLoginForm() {
       onSubmit={handleSubmit}
       className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-10"
     >
-      <AdminLogo size={64} />
+      <div className="flex justify-center">
+        <AdminLogo size={64} />
+      </div>
 
-      <p className="mt-5 font-display text-2xl text-white">Admin Sign-In</p>
-      <p className="mt-1.5 font-sans text-sm text-white/50">Royal Palms Realty content admin</p>
+      <p className="mt-5 text-center font-display text-2xl text-white">Admin Sign-In</p>
+      <p className="mt-1.5 text-center font-sans text-sm text-white/50">Royal Palms Realty content admin</p>
 
       <label htmlFor="admin-password" className="mt-7 block font-sans text-xs font-medium uppercase tracking-wide text-white/60">
         Password
