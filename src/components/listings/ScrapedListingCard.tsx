@@ -9,16 +9,21 @@ function formatPrice(n: number) {
 
 export function ScrapedListingCard({
   listing,
-  fromNeighborhood,
+  backHref,
+  backLabel,
 }: {
   listing: ScrapedListing;
-  /** Neighborhood slug this card is shown under, e.g. "truman-annex" — lets
-   * the detail page send "Back" here instead of a generic search page. */
-  fromNeighborhood?: string;
+  /** Where this card's page would return to on "Back" — e.g. the
+   * neighborhood or search results the card is shown under — so the detail
+   * page can send the buyer back to where they actually were. */
+  backHref?: string;
+  backLabel?: string;
 }) {
-  const href = fromNeighborhood
-    ? `${buildOwnListingUrl(listing)}?from=${fromNeighborhood}`
-    : buildOwnListingUrl(listing);
+  const params = new URLSearchParams();
+  if (backHref) params.set("from", backHref);
+  if (backLabel) params.set("fromLabel", backLabel);
+  const query = params.toString();
+  const href = query ? `${buildOwnListingUrl(listing)}?${query}` : buildOwnListingUrl(listing);
 
   return (
     <Link

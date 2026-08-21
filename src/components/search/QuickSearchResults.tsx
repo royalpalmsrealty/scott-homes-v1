@@ -1,16 +1,20 @@
 import Link from "next/link";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { PropertyCard } from "@/components/listings/PropertyCard";
-import type { Listing } from "@/lib/listings/provider";
+import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
+import type { ScrapedListing } from "@/lib/listings/idxScrape";
 
 export function QuickSearchResults({
   heading,
   intro,
   listings,
+  backHref,
+  backLabel,
 }: {
   heading: string;
   intro: string;
-  listings: Listing[];
+  listings: ScrapedListing[];
+  backHref: string;
+  backLabel: string;
 }) {
   return (
     <section className="mx-auto max-w-[1280px] px-4 py-14 sm:px-6 sm:py-24 lg:px-8">
@@ -20,14 +24,19 @@ export function QuickSearchResults({
       {listings.length > 0 ? (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
-            <PropertyCard key={listing.id} listing={listing} />
+            <ScrapedListingCard
+              key={listing.listingId}
+              listing={listing}
+              backHref={backHref}
+              backLabel={backLabel}
+            />
           ))}
         </div>
       ) : (
         <div className="mt-10 border border-line bg-paper p-8 text-center">
           <p className="font-sans text-base text-body">
-            Nothing new in this window right now — check back soon, or browse everything
-            currently on the market.
+            Nothing to show right now — check back soon, or browse everything currently on the
+            market.
           </p>
           <Link
             href="/search"
@@ -37,6 +46,10 @@ export function QuickSearchResults({
           </Link>
         </div>
       )}
+
+      <p className="mt-8 font-sans text-xs text-muted">
+        Results sourced live from the Florida Keys MLS via IDX Broker, sorted newest first.
+      </p>
     </section>
   );
 }

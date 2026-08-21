@@ -5,7 +5,6 @@ import { parseOwnListingSlug, fetchListingDetail } from "@/lib/listings/idxScrap
 import { ListingPhotoGallery } from "@/components/listings/ListingPhotoGallery";
 import { ShareListingButton } from "@/components/listings/ShareListingButton";
 import { CalendlyButton } from "@/components/scheduling/CalendlyButton";
-import { getNeighborhood } from "@/lib/neighborhoods";
 import { brand } from "@/lib/brand";
 
 export const dynamic = "force-dynamic"; // always a live MLS lookup, never cached/prerendered
@@ -42,18 +41,19 @@ export default async function ListingDetailPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string; fromLabel?: string }>;
 }) {
   const { slug } = await params;
-  const { from } = await searchParams;
+  const { from, fromLabel } = await searchParams;
   const listing = await loadListing(slug);
   if (!listing) notFound();
 
-  // Arrived from a neighborhood's listings page → send "Back" there instead
-  // of the generic AI search, so the buyer lands where they were browsing.
-  const fromNeighborhood = from ? getNeighborhood(from) : null;
-  const backHref = fromNeighborhood ? `/neighborhoods/${fromNeighborhood.slug}` : "/search/ai";
-  const backLabel = fromNeighborhood ? `Back to ${fromNeighborhood.name}` : "Back to Search";
+  // "from" is whatever page linked here (a neighborhood, /search with its
+  // filters, an AI search) — sending "Back" there instead of a generic
+  // dead-end. Only ever a same-site relative path we generated ourselves;
+  // reject anything else (e.g. an absolute/external URL) before using it.
+  const backHref = from && from.startsWith("/") ? from : "/";
+  const backLabel = from && fromLabel ? fromLabel : "Back to Home";
 
   const mapsUrl =
     listing.lat && listing.lng ? `https://www.google.com/maps?q=${listing.lat},${listing.lng}` : null;

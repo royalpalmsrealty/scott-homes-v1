@@ -112,7 +112,12 @@ export function AISearchResults({
       ) : (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
-            <ScrapedListingCard key={listing.listingId} listing={listing} />
+            <ScrapedListingCard
+              key={listing.listingId}
+              listing={listing}
+              backHref="/"
+              backLabel="Back to Home"
+            />
           ))}
         </div>
       )}

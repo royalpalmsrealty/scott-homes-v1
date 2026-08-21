@@ -40,6 +40,12 @@ export type IdxSearchFilters = {
   // result counts (page-size capping made count-only comparison unreliable).
   condo?: boolean;
   waterfront?: boolean;
+  // Maps to the results page's own "srt" sort field (confirmed live via its
+  // #IDX-refineSorting select) — the only "recency" signal IDX exposes.
+  // There's no actual list-date attribute anywhere in the scraped markup,
+  // so this can order by newest-first but can't answer "listed in the last
+  // N hours" precisely — see the "New Listings" pages for how that's handled.
+  sort?: "newest";
 };
 
 export function buildIdxSearchUrl(filters: IdxSearchFilters): string {
@@ -52,6 +58,7 @@ export function buildIdxSearchUrl(filters: IdxSearchFilters): string {
   if (filters.minBeds) params.set("bd", String(filters.minBeds));
   if (filters.condo) params.append("a_propSubType[]", "Condominium");
   if (filters.waterfront) params.set("a_waterfrontYN", "Y");
+  if (filters.sort === "newest") params.set("srt", "newest");
 
   const cityId = filters.neighborhood
     ? NEIGHBORHOOD_TO_CITY_ID[filters.neighborhood] ?? KEY_WEST_CITY_ID

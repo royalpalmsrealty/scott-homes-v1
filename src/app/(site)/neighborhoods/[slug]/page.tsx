@@ -42,6 +42,12 @@ export default async function NeighborhoodPage({
   const condo = type === "condo";
   const waterfront = feature === "waterfront";
 
+  const backParams = new URLSearchParams();
+  if (type) backParams.set("type", type);
+  if (feature) backParams.set("feature", feature);
+  const backQuery = backParams.toString();
+  const backHref = `/neighborhoods/${slug}${backQuery ? `?${backQuery}` : ""}`;
+
   const filters = { neighborhood: neighborhood.name, condo, waterfront };
   const [listings, resultsCount] = await Promise.all([
     fetchIdxListings(filters, 24).catch(() => []),
@@ -151,7 +157,12 @@ export default async function NeighborhoodPage({
           {listings.length > 0 ? (
             <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {listings.map((listing) => (
-                <ScrapedListingCard key={listing.listingId} listing={listing} fromNeighborhood={slug} />
+                <ScrapedListingCard
+                  key={listing.listingId}
+                  listing={listing}
+                  backHref={backHref}
+                  backLabel={`Back to ${neighborhood.name}`}
+                />
               ))}
             </div>
           ) : (
@@ -162,7 +173,7 @@ export default async function NeighborhoodPage({
                   : `No active listings in ${neighborhood.name} right now.`}
               </p>
               <Link
-                href="/search/ai"
+                href="/search"
                 className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-6 py-2.5 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink"
               >
                 Search All Key West Listings

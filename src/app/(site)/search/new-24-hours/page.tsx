@@ -1,23 +1,25 @@
 import type { Metadata } from "next";
 import { QuickSearchResults } from "@/components/search/QuickSearchResults";
-import { listingProvider } from "@/lib/listings/provider";
+import { fetchIdxListings } from "@/lib/listings/idxScrape";
 
 export const metadata: Metadata = {
-  title: "New Listings in the Last 24 Hours",
+  title: "Newest Listings",
   description:
-    "Browse Key West homes for sale listed in the last 24 hours — the newest inventory on the market, updated continuously by Royal Palms Realty.",
+    "Browse the newest Key West homes for sale on the market right now, sorted newest first.",
 };
 
-export const revalidate = 900;
+export const dynamic = "force-dynamic"; // always a live MLS lookup
 
 export default async function New24HoursPage() {
-  const listings = await listingProvider.getRecentSince(24);
+  const listings = await fetchIdxListings({ sort: "newest" }, 12).catch(() => []);
 
   return (
     <QuickSearchResults
       heading="New in the Last 24 Hours"
-      intro="The newest Key West listings on the market — anything that hit the MLS in the last day, sorted newest first."
+      intro="The freshest listings on the market, sorted newest first. IDX Broker doesn't give us an exact listing timestamp, so this shows the most recently listed homes rather than a strict 24-hour cutoff."
       listings={listings}
+      backHref="/search/new-24-hours"
+      backLabel="Back to New Listings"
     />
   );
 }
