@@ -4,15 +4,15 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { SocialLinks } from "@/components/ui/SocialLinks";
 import { brand } from "@/lib/brand";
 
-const facts = ["Broker/Owner", "Principal Broker", "Key West, FL"];
+const facts = ["Broker/Owner", "Principal Broker", "MLS Chairman", "Key West, FL"];
 
 // Pulled from Scott's approved bio on the About page — reused here as
 // highlights rather than a bare fact-chip row, to give the section real
 // substance instead of empty space.
 const highlights = [
   { value: "2001", label: "In Key West Real Estate Since" },
-  { value: "2013", label: "Key West Realtor of the Year" },
-  { value: "$52.7M", label: "Combined Firm Sales, 2013" },
+  { value: "Former", label: "Key West Realtor of the Year" },
+  { value: "Hundreds of Millions", label: "In Career Sales" },
 ];
 
 export function MeetScottSection() {

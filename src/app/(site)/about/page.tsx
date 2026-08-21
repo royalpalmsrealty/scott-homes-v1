@@ -183,12 +183,13 @@ export default function AboutPage() {
               <p className="mt-4 font-sans text-base text-body">
                 Today he&rsquo;s the owner and Principal Broker of {brand.brokerage}, and
                 one of the foremost experts in luxury real estate in the Florida Keys —
-                named Key West Realtor of the Year for 2013. In 2014, he was chosen to take
-                over Marquis Properties as the two top luxury boutique companies merged to
-                form Royal Palms Realty, with the combined firms recording $52.7 million in
-                sales in 2013 with only two luxury agents. His passion is providing
-                personalized service and creating the best possible experience for every
-                luxury buyer and seller he works with.
+                named Key West&rsquo;s Former Realtor of the Year. In 2014, he was chosen to
+                take over Marquis Properties as the two top luxury boutique companies merged
+                to form Royal Palms Realty, with the combined firms going on to record
+                hundreds of millions of dollars in sales with just two luxury agents. He
+                currently serves as MLS Chairman and Board Member of the Key West Association
+                of REALTORS. His passion is providing personalized service and creating the
+                best possible experience for every luxury buyer and seller he works with.
               </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-4">
