@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
 import { SearchFilterForm } from "@/components/search/SearchFilterForm";
 import { parseSearchQuery } from "@/lib/ai/searchParser";
@@ -93,80 +92,102 @@ export default async function SearchPage({
     : [[] as Awaited<ReturnType<typeof fetchIdxListings>>, { count: 0, isMinimum: false }];
 
   return (
-    <section className="mx-auto max-w-[1280px] px-4 py-14 sm:px-6 sm:py-24 lg:px-8">
-      <SectionHeading eyebrow="Key West MLS" heading="Search Listings" as="h1" />
-      <p className="mt-4 max-w-2xl font-sans text-base text-body">
-        Search in your own words, then narrow with the filters below — results pull live from
-        the Florida Keys MLS.
-      </p>
-
-      <div className="mt-8">
-        <SearchFilterForm
-          initialQuery={q}
-          initialNeighborhood={neighborhood}
-          initialMinPrice={filters.minPrice}
-          initialMaxPrice={filters.maxPrice}
-          initialMinBeds={filters.minBeds}
-          initialCondo={filters.condo}
-          initialWaterfront={filters.waterfront}
-          neighborhoodOptions={neighborhoods.map((n) => n.name)}
+    <>
+      <section className="relative flex min-h-[280px] items-center overflow-hidden bg-ink sm:min-h-[320px]">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: "url(/images/hero-poster.jpg)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+          aria-hidden="true"
         />
-      </div>
-
-      {hasAnyFilter ? (
-        <>
-          <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
-            <p className="font-sans text-sm text-muted">
-              {resultsCount.isMinimum
-                ? `${resultsCount.count}+ live results`
-                : `${resultsCount.count} live result${resultsCount.count === 1 ? "" : "s"}`}
-            </p>
-          </div>
-
-          {usedFallback && (
-            <p className="mt-2 max-w-xl font-sans text-sm text-gold-deep">
-              We couldn&rsquo;t confidently parse that phrase into filters — showing everything
-              that matches your other filters instead.
-            </p>
-          )}
-
-          {broadened && (
-            <p className="mt-3 max-w-xl font-sans text-xs text-muted">
-              Note: the MLS search can&rsquo;t narrow to the specific &ldquo;{neighborhood}&rdquo;
-              area — these results cover all of Key West Island instead.
-            </p>
-          )}
-
-          {listings.length > 0 ? (
-            <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {listings.map((listing) => (
-                <ScrapedListingCard
-                  key={listing.listingId}
-                  listing={listing}
-                  backHref={backHref}
-                  backLabel="Back to Search"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-line bg-paper p-8 text-center">
-              <p className="font-sans text-base text-body">
-                Nothing matches those filters right now. Try loosening one above.
-              </p>
-            </div>
-          )}
-
-          <p className="mt-8 font-sans text-xs text-muted">
-            Results sourced live from the Florida Keys MLS via IDX Broker.
-          </p>
-        </>
-      ) : (
-        <div className="mt-10 rounded-2xl border border-line bg-paper p-8 text-center">
-          <p className="font-sans text-base text-body">
-            Describe what you&rsquo;re looking for, or set a filter above, then hit Search.
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(160deg, rgba(0,0,0,0.75) 20%, rgba(15,110,107,0.75) 100%)" }}
+          aria-hidden="true"
+        />
+        <div className="relative mx-auto w-full max-w-[1280px] px-4 pb-24 pt-16 sm:px-6 sm:pb-28 lg:px-8">
+          <p className="font-sans text-xs font-semibold uppercase tracking-[0.18em] text-gold">Key West MLS</p>
+          <h1 className="mt-3 font-display text-4xl text-white sm:text-5xl">Search Listings</h1>
+          <p className="mt-4 max-w-xl font-sans text-base text-white/80">
+            Search in your own words, then narrow with the filters below — every result pulls
+            live from the Florida Keys MLS.
           </p>
         </div>
-      )}
-    </section>
+      </section>
+
+      <section className="mx-auto max-w-[1280px] px-4 pb-14 sm:px-6 sm:pb-24 lg:px-8">
+        <div className="-mt-16 sm:-mt-20">
+          <SearchFilterForm
+            initialQuery={q}
+            initialNeighborhood={neighborhood}
+            initialMinPrice={filters.minPrice}
+            initialMaxPrice={filters.maxPrice}
+            initialMinBeds={filters.minBeds}
+            initialCondo={filters.condo}
+            initialWaterfront={filters.waterfront}
+            neighborhoodOptions={neighborhoods.map((n) => n.name)}
+          />
+        </div>
+
+        {hasAnyFilter ? (
+          <>
+            <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+              <p className="inline-flex items-center gap-2 font-sans text-sm font-medium text-ink">
+                <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
+                {resultsCount.isMinimum
+                  ? `${resultsCount.count}+ live results`
+                  : `${resultsCount.count} live result${resultsCount.count === 1 ? "" : "s"}`}
+              </p>
+            </div>
+
+            {usedFallback && (
+              <p className="mt-2 max-w-xl font-sans text-sm text-gold-deep">
+                We couldn&rsquo;t confidently parse that phrase into filters — showing everything
+                that matches your other filters instead.
+              </p>
+            )}
+
+            {broadened && (
+              <p className="mt-3 max-w-xl font-sans text-xs text-muted">
+                Note: the MLS search can&rsquo;t narrow to the specific &ldquo;{neighborhood}&rdquo;
+                area — these results cover all of Key West Island instead.
+              </p>
+            )}
+
+            {listings.length > 0 ? (
+              <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {listings.map((listing) => (
+                  <ScrapedListingCard
+                    key={listing.listingId}
+                    listing={listing}
+                    backHref={backHref}
+                    backLabel="Back to Search"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-6 rounded-3xl border border-line bg-paper p-10 text-center">
+                <p className="font-sans text-base text-body">
+                  Nothing matches those filters right now. Try loosening one above.
+                </p>
+              </div>
+            )}
+
+            <p className="mt-8 font-sans text-xs text-muted">
+              Results sourced live from the Florida Keys MLS via IDX Broker.
+            </p>
+          </>
+        ) : (
+          <div className="mt-10 rounded-3xl border border-line bg-paper p-10 text-center">
+            <p className="font-sans text-base text-body">
+              Describe what you&rsquo;re looking for, or set a filter above, then hit Search.
+            </p>
+          </div>
+        )}
+      </section>
+    </>
   );
 }

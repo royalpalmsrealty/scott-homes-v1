@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode, type JSX } from "react";
 import { useRouter } from "next/navigation";
 
 export function SearchFilterForm({
@@ -51,10 +51,16 @@ export function SearchFilterForm({
         e.preventDefault();
         runSearch();
       }}
-      className="rounded-2xl border border-line bg-white p-5 sm:p-6"
+      className="relative overflow-hidden rounded-3xl bg-white p-6 shadow-[0_30px_60px_-25px_rgba(15,40,38,0.35)] sm:p-8"
     >
-      <div className="flex items-center gap-2 rounded-full border border-line bg-paper px-4 py-1.5">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0 text-muted">
+      <span
+        className="absolute inset-x-0 top-0 h-[3px]"
+        aria-hidden="true"
+        style={{ background: "linear-gradient(90deg, var(--teal) 0%, var(--gold) 100%)" }}
+      />
+
+      <div className="flex items-center gap-3 rounded-full border border-line bg-paper px-5 py-2 transition-colors focus-within:border-teal/50 focus-within:ring-2 focus-within:ring-teal/20">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0 text-muted">
           <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
           <path d="M21 21l-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
@@ -64,17 +70,16 @@ export function SearchFilterForm({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Describe what you're looking for — e.g. 3 bed conch house in Old Town under $2M"
           aria-label="Search Key West listings in your own words"
-          className="h-9 min-w-0 flex-1 border-none bg-transparent font-sans text-sm text-ink placeholder:text-body/70 focus:outline-none"
+          className="h-10 min-w-0 flex-1 border-none bg-transparent font-sans text-[15px] text-ink placeholder:text-body/60 focus:outline-none"
         />
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="block">
-          <span className="font-sans text-xs font-medium uppercase tracking-wide text-muted">Neighborhood</span>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <FilterField label="Neighborhood" color="#35577a" icon={PinIcon}>
           <select
             value={neighborhood}
             onChange={(e) => setNeighborhood(e.target.value)}
-            className="mt-1.5 block h-10 w-full rounded-lg border border-line bg-white px-3 font-sans text-sm text-ink focus:outline-none focus:ring-2 focus:ring-teal/40"
+            className="h-10 w-full rounded-lg border border-line bg-white px-3 font-sans text-sm text-ink focus:outline-none focus:ring-2 focus:ring-[#35577a]/30"
           >
             <option value="">Any</option>
             {neighborhoodOptions.map((name) => (
@@ -83,38 +88,35 @@ export function SearchFilterForm({
               </option>
             ))}
           </select>
-        </label>
+        </FilterField>
 
-        <label className="block">
-          <span className="font-sans text-xs font-medium uppercase tracking-wide text-muted">Min Price</span>
+        <FilterField label="Min Price" color="#96802e" icon={DollarIcon}>
           <input
             type="number"
             inputMode="numeric"
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
             placeholder="No min"
-            className="mt-1.5 block h-10 w-full rounded-lg border border-line bg-white px-3 font-sans text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-teal/40"
+            className="h-10 w-full rounded-lg border border-line bg-white px-3 font-sans text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[#96802e]/30"
           />
-        </label>
+        </FilterField>
 
-        <label className="block">
-          <span className="font-sans text-xs font-medium uppercase tracking-wide text-muted">Max Price</span>
+        <FilterField label="Max Price" color="#c1694a" icon={DollarIcon}>
           <input
             type="number"
             inputMode="numeric"
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
             placeholder="No max"
-            className="mt-1.5 block h-10 w-full rounded-lg border border-line bg-white px-3 font-sans text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-teal/40"
+            className="h-10 w-full rounded-lg border border-line bg-white px-3 font-sans text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[#c1694a]/30"
           />
-        </label>
+        </FilterField>
 
-        <label className="block">
-          <span className="font-sans text-xs font-medium uppercase tracking-wide text-muted">Min Beds</span>
+        <FilterField label="Min Beds" color="#0f6e6b" icon={BedIcon}>
           <select
             value={minBeds}
             onChange={(e) => setMinBeds(e.target.value)}
-            className="mt-1.5 block h-10 w-full rounded-lg border border-line bg-white px-3 font-sans text-sm text-ink focus:outline-none focus:ring-2 focus:ring-teal/40"
+            className="h-10 w-full rounded-lg border border-line bg-white px-3 font-sans text-sm text-ink focus:outline-none focus:ring-2 focus:ring-teal/40"
           >
             <option value="">Any</option>
             {[1, 2, 3, 4, 5].map((n) => (
@@ -123,46 +125,120 @@ export function SearchFilterForm({
               </option>
             ))}
           </select>
-        </label>
+        </FilterField>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Filter by property type or feature">
-        <FilterChip label="Condo" active={condo} onClick={() => setCondo((c) => !c)} />
-        <FilterChip label="Waterfront" active={waterfront} onClick={() => setWaterfront((w) => !w)} />
-      </div>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-5">
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by property type or feature">
+          <FilterChip label="Condo" active={condo} color="#c1694a" icon={HomeIcon} onClick={() => setCondo((c) => !c)} />
+          <FilterChip label="Waterfront" active={waterfront} color="#35577a" icon={WaveIcon} onClick={() => setWaterfront((w) => !w)} />
+        </div>
 
-      <button
-        type="submit"
-        className="mt-5 inline-flex h-11 min-w-32 items-center justify-center rounded-full bg-teal px-6 font-sans text-sm font-medium text-ink transition-colors hover:bg-teal-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-deep"
-      >
-        Search
-      </button>
+        <button
+          type="submit"
+          className="inline-flex h-12 min-w-36 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--teal)_0%,var(--teal-deep)_100%)] px-7 font-sans text-sm font-semibold text-white shadow-[0_10px_24px_-8px_rgba(15,110,107,0.55)] transition-transform hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-deep"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+            <path d="M21 21l-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          Search
+        </button>
+      </div>
     </form>
   );
 }
 
-function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function FilterField({
+  label,
+  color,
+  icon: Icon,
+  children,
+}: {
+  label: string;
+  color: string;
+  icon: () => JSX.Element;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="flex items-center gap-1.5 font-sans text-xs font-semibold uppercase tracking-wide" style={{ color }}>
+        <Icon />
+        {label}
+      </span>
+      <div className="mt-1.5">{children}</div>
+    </label>
+  );
+}
+
+function FilterChip({
+  label,
+  active,
+  color,
+  icon: Icon,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  color: string;
+  icon: () => JSX.Element;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-4 font-sans text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-deep ${
+      className="inline-flex h-9 items-center gap-1.5 rounded-full border px-4 font-sans text-sm font-medium transition-all focus-visible:outline-2 focus-visible:outline-offset-2"
+      style={
         active
-          ? "border-teal bg-teal text-ink shadow-[0_4px_14px_rgba(40,188,184,0.35)]"
-          : "border-line bg-white text-body hover:border-teal/50 hover:bg-teal/5"
-      }`}
+          ? { borderColor: color, backgroundColor: color, color: "#fff", boxShadow: `0 4px 14px -2px ${color}80` }
+          : { borderColor: "var(--line)", backgroundColor: "#fff", color: "var(--body)" }
+      }
     >
-      {active && <CheckIcon />}
+      <Icon />
       {label}
     </button>
   );
 }
 
-function CheckIcon() {
+function PinIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5 12l4 4L19 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <circle cx="12" cy="9.5" r="2.2" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function DollarIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3v18M16.5 7c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3c0 4 9 2.3 9 6.3 0 1.7-2 3-4.5 3s-4.5-1.3-4.5-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function BedIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 19v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 19v2M21 19v2M3 13V7a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v4M13 11V6a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 11 12 4l8 7M6 10v9h12v-9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function WaveIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M2 16c1.5 1.3 3 1.3 4.5 0s3-1.3 4.5 0 3 1.3 4.5 0 3-1.3 4.5 0M2 11c1.5 1.3 3 1.3 4.5 0s3-1.3 4.5 0 3 1.3 4.5 0 3-1.3 4.5 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }

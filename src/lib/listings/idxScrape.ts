@@ -124,7 +124,15 @@ export async function fetchListingDetail(listingId: string, addressSlug: string)
     sqft: parseNumber(findSummaryField($, "SqFt")),
     acres: parseNumber(findSummaryField($, "Acres")),
     yearBuilt: parseNumber(findSummaryField($, "Year Built")),
-    description: $("#IDX-detailsDescription").first().text().replace(/\s+/g, " ").trim(),
+    // The raw MLS text sometimes has no space after a sentence's period
+    // ("...intention.Hop on...") — add one back before collapsing whitespace,
+    // without touching real content.
+    description: $("#IDX-detailsDescription")
+      .first()
+      .text()
+      .replace(/\.([A-Z])/g, ". $1")
+      .replace(/\s+/g, " ")
+      .trim(),
     photos,
     lat: lat ? Number(lat) : null,
     lng: lng ? Number(lng) : null,
