@@ -7,10 +7,22 @@ function formatPrice(n: number) {
   return `$${n.toLocaleString("en-US")}`;
 }
 
-export function ScrapedListingCard({ listing }: { listing: ScrapedListing }) {
+export function ScrapedListingCard({
+  listing,
+  fromNeighborhood,
+}: {
+  listing: ScrapedListing;
+  /** Neighborhood slug this card is shown under, e.g. "truman-annex" — lets
+   * the detail page send "Back" here instead of a generic search page. */
+  fromNeighborhood?: string;
+}) {
+  const href = fromNeighborhood
+    ? `${buildOwnListingUrl(listing)}?from=${fromNeighborhood}`
+    : buildOwnListingUrl(listing);
+
   return (
     <Link
-      href={buildOwnListingUrl(listing)}
+      href={href}
       className="group block overflow-hidden rounded-2xl border border-line bg-white shadow-sm transition-all hover:-translate-y-1 hover:border-teal/40 hover:shadow-lg"
     >
       <div className="relative aspect-[3/2] overflow-hidden bg-paper">

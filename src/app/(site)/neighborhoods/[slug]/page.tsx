@@ -76,7 +76,16 @@ export default async function NeighborhoodPage({
       />
 
       <section className="mx-auto max-w-[1280px] px-4 py-14 sm:px-6 sm:py-24 lg:px-8">
-        <SectionHeading eyebrow="Key West Neighborhood" heading={neighborhood.name} as="h1" />
+        <Link
+          href="/neighborhoods"
+          className="inline-flex items-center gap-1.5 font-sans text-sm text-teal-deep hover:underline"
+        >
+          &larr; Back to Neighborhoods
+        </Link>
+
+        <div className="mt-4">
+          <SectionHeading eyebrow="Key West Neighborhood" heading={neighborhood.name} as="h1" />
+        </div>
 
         {/* TODO-CLIENT-ASSET: general, non-fabricated overview copy pending client review */}
         <div className="mt-6 max-w-2xl">
@@ -142,7 +151,7 @@ export default async function NeighborhoodPage({
           {listings.length > 0 ? (
             <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {listings.map((listing) => (
-                <ScrapedListingCard key={listing.listingId} listing={listing} />
+                <ScrapedListingCard key={listing.listingId} listing={listing} fromNeighborhood={slug} />
               ))}
             </div>
           ) : (

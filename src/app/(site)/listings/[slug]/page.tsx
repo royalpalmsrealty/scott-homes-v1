@@ -5,6 +5,7 @@ import { parseOwnListingSlug, fetchListingDetail } from "@/lib/listings/idxScrap
 import { ListingPhotoGallery } from "@/components/listings/ListingPhotoGallery";
 import { ShareListingButton } from "@/components/listings/ShareListingButton";
 import { CalendlyButton } from "@/components/scheduling/CalendlyButton";
+import { getNeighborhood } from "@/lib/neighborhoods";
 import { brand } from "@/lib/brand";
 
 export const dynamic = "force-dynamic"; // always a live MLS lookup, never cached/prerendered
@@ -38,20 +39,29 @@ export async function generateMetadata({
 
 export default async function ListingDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { slug } = await params;
+  const { from } = await searchParams;
   const listing = await loadListing(slug);
   if (!listing) notFound();
+
+  // Arrived from a neighborhood's listings page → send "Back" there instead
+  // of the generic AI search, so the buyer lands where they were browsing.
+  const fromNeighborhood = from ? getNeighborhood(from) : null;
+  const backHref = fromNeighborhood ? `/neighborhoods/${fromNeighborhood.slug}` : "/search/ai";
+  const backLabel = fromNeighborhood ? `Back to ${fromNeighborhood.name}` : "Back to Search";
 
   const mapsUrl =
     listing.lat && listing.lng ? `https://www.google.com/maps?q=${listing.lat},${listing.lng}` : null;
 
   return (
     <section className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-      <Link href="/search/ai" className="inline-flex items-center gap-1.5 font-sans text-sm text-teal-deep hover:underline">
-        &larr; Back to Search
+      <Link href={backHref} className="inline-flex items-center gap-1.5 font-sans text-sm text-teal-deep hover:underline">
+        &larr; {backLabel}
       </Link>
 
       <div className="mt-4">

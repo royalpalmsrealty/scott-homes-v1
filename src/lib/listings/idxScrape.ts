@@ -67,7 +67,10 @@ export type ListingDetail = {
 function findSummaryField($: cheerio.CheerioAPI, label: string): string | undefined {
   let value: string | undefined;
   $(".IDX-summaryField").each((_, el) => {
-    const fieldLabel = $(el).find(".IDX-summaryFieldLabel").text().trim();
+    // Labels render with a trailing colon ("Bedrooms:") — strip it before
+    // comparing, or every lookup here silently fails and the stat gets
+    // dropped from the page instead of shown.
+    const fieldLabel = $(el).find(".IDX-summaryFieldLabel").text().trim().replace(/:$/, "");
     if (fieldLabel.toLowerCase() === label.toLowerCase()) {
       value = $(el).find(".IDX-summaryFieldData").text().trim();
     }
