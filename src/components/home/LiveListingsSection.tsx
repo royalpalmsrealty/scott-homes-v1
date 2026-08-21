@@ -1,18 +1,18 @@
 import Link from "next/link";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { PropertyCard } from "@/components/listings/PropertyCard";
-import { listingProvider, type Listing } from "@/lib/listings/provider";
+import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
+import { fetchIdxListings, type ScrapedListing } from "@/lib/listings/idxScrape";
 
 const FEED_SIZE = 6;
 
-async function getFeedListings(): Promise<{ listings: Listing[]; degraded: boolean }> {
+async function getFeedListings(): Promise<{ listings: ScrapedListing[]; degraded: boolean }> {
   try {
-    const listings = await listingProvider.getRecent(FEED_SIZE);
+    const listings = await fetchIdxListings({ sort: "newest" }, FEED_SIZE);
     return { listings, degraded: false };
   } catch (error) {
-    // Real provider failure path: serve nothing rather than crash the
-    // homepage. A real MLS-backed provider should catch here too and return
-    // its last successfully cached set — see D1 for the sync/cache plan.
+    // Serve nothing rather than crash the homepage if IDX Broker is
+    // unreachable (see the IP-blocking notes elsewhere in this project) —
+    // the section below already has a "temporarily unavailable" fallback.
     console.error("Live listings feed failed to load", error);
     return { listings: [], degraded: true };
   }
@@ -52,8 +52,8 @@ export async function LiveListingsSection() {
         // sm+: resets to a real grid — 2-up tablet, 3-up (3×2) desktop.
         <div className="mt-10 flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory sm:mx-0 sm:grid sm:snap-none sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
-            <div key={listing.id} className="w-[85%] shrink-0 snap-start sm:w-auto sm:shrink">
-              <PropertyCard listing={listing} />
+            <div key={listing.listingId} className="w-[85%] shrink-0 snap-start sm:w-auto sm:shrink">
+              <ScrapedListingCard listing={listing} backHref="/" backLabel="Back to Home" />
             </div>
           ))}
         </div>

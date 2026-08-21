@@ -65,3 +65,54 @@ create table if not exists knowledge_base_files (
   status text not null default 'processing' check (status in ('processing', 'ready', 'failed')),
   uploaded_at timestamptz not null default now()
 );
+
+-- Make an Offer flow. Property fields are always re-fetched server-side from
+-- the live MLS (see fetchListingDetail) and never trusted from the client —
+-- this table only ever stores what that scrape returned plus the buyer's own
+-- structured answers. inspection_reminder_shown_at proves the guide's
+-- required verbatim cancellation reminder was actually displayed before the
+-- buyer moved past that step, rather than just trusting it was shown.
+create table if not exists offers (
+  id uuid primary key default gen_random_uuid(),
+  status text not null default 'draft' check (status in ('draft', 'submitted', 'escalated')),
+  listing_id text not null,
+  listing_mls_id text not null,
+  listing_address text not null,
+  listing_price numeric not null,
+  listing_url text not null,
+  buyer_name text,
+  buyer_email text,
+  buyer_phone text,
+  offer_price numeric,
+  escrow_amount numeric,
+  escrow_percent numeric,
+  financing text check (financing in ('cash', 'financed')),
+  inspection_days integer,
+  inspection_reminder_shown_at timestamptz,
+  title_costs_note text,
+  closing_date date,
+  special_clauses text,
+  sale_of_property_notes text,
+  personal_property text,
+  title_taken_as text,
+  callback_requested boolean not null default false,
+  callback_phone text,
+  callback_best_time text,
+  ghl_error text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Buyer-uploaded offer documents (photo ID, proof of funds, preapproval,
+-- contingency docs). The files themselves live in the private
+-- "offer-documents" Storage bucket (never public — see offerStorage.ts);
+-- this table just tracks what was uploaded against which offer.
+create table if not exists offer_documents (
+  id uuid primary key default gen_random_uuid(),
+  offer_id uuid not null references offers(id) on delete cascade,
+  kind text not null check (kind in ('photo_id', 'proof_of_funds', 'preapproval', 'contingency')),
+  storage_path text not null,
+  filename text not null,
+  size_bytes bigint not null,
+  uploaded_at timestamptz not null default now()
+);

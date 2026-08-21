@@ -136,6 +136,12 @@ export default async function ListingDetailPage({
           >
             Schedule a Showing
           </CalendlyButton>
+          <Link
+            href={`/listings/${slug}/offer`}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-ink px-6 font-sans text-sm font-medium text-ink transition-colors hover:border-teal hover:bg-teal"
+          >
+            Make an Offer
+          </Link>
         </div>
       </div>
 
