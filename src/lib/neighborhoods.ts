@@ -15,9 +15,14 @@ export type Neighborhood = {
   imageDirection: string;
   image?: string;
   imageAlt?: string;
-  medianPrice: number;
-  daysOnMarket: number;
-  activeInventory: number;
+  // Optional and left unset for Midtown East / New Town (added 2026-08-20) —
+  // these were sample/placeholder numbers for the original 8, not real MLS
+  // data (see the "Sample market data" disclosures already on both the grid
+  // and detail pages). Don't invent numbers for these two just to fill the
+  // type; render code must handle them being absent.
+  medianPrice?: number;
+  daysOnMarket?: number;
+  activeInventory?: number;
 };
 
 export const neighborhoods: Neighborhood[] = [
@@ -140,6 +145,29 @@ export const neighborhoods: Neighborhood[] = [
     medianPrice: 780000,
     daysOnMarket: 49,
     activeInventory: 17,
+  },
+  {
+    slug: "midtown-east",
+    name: "Midtown East",
+    tileBlurb: "The eastern half of Midtown, close to shopping and the airport.",
+    imageDirection: "Practical single-family streets toward the island's east end",
+    overview: [
+      "Midtown East covers the eastern stretch of Key West's Midtown area, generally closer to the airport and the island's shopping corridors than Midtown West.",
+      "Like the rest of Midtown, it's built out with more conventional single-family homes than Old Town's historic construction — a practical, year-round residential option rather than a tourist-facing one.",
+    ],
+    // TODO-CLIENT-ASSET: general placeholder copy — Scott should review/refine
+    // this one specifically; it's a less universally-documented boundary
+    // than the other 9 and would benefit from his own on-the-ground read.
+  },
+  {
+    slug: "new-town",
+    name: "New Town",
+    tileBlurb: "The island's newer eastern development, near the airport and big-box shopping.",
+    imageDirection: "Newer commercial corridors and residential streets on the island's east end",
+    overview: [
+      "New Town is the newer, eastern half of Key West — developed later than Old Town, with wider streets, more conventional construction, and easier parking, and home to the airport and most of the island's larger shopping.",
+      "It's a common fit for buyers who want to live on the island year-round with more day-to-day convenience, trading Old Town's historic density for practicality.",
+    ],
   },
 ];
 

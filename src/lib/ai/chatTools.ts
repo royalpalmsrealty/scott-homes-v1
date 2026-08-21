@@ -106,9 +106,14 @@ export async function executeChatTool(
         result: {
           name: neighborhood.name,
           overview: neighborhood.overview,
-          medianPrice: neighborhood.medianPrice,
-          daysOnMarket: neighborhood.daysOnMarket,
-          activeInventory: neighborhood.activeInventory,
+          // Deliberately omitted rather than passed as undefined: these are
+          // placeholder sample numbers on the 8 original neighborhoods (not
+          // real MLS data — see the "Sample market data" disclosures on the
+          // public pages) and were never set at all for the 2 added
+          // 2026-08-20. The chat system prompt's hard rule against stating
+          // unverified statistics as fact means the model shouldn't have
+          // these fed to it as if real; flagged to the client as a gap
+          // worth fixing (either wire real numbers or drop the fields).
         },
       };
     }

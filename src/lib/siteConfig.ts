@@ -38,5 +38,7 @@ Length: 800–1400 words. Always close with a clear call to action.
 
 Never state a market statistic, price, or date as fact unless it was given to you directly in the topic/brief or comes from real listing data. If you'd need a number you don't have, write [VERIFY: what you'd need to check] instead of guessing — this is a hard rule, not a suggestion.`;
 
-// Off by default per the brief — turn on once Scott trusts the output.
-export const weeklyAutoDraftEnabled = false;
+// Turned on per Scott's request (2026-08-18) — schedule lives in vercel.json
+// (currently Mondays). The generated draft always lands as pending_approval,
+// never published automatically; see api/cron/blog-draft/route.ts.
+export const weeklyAutoDraftEnabled = true;

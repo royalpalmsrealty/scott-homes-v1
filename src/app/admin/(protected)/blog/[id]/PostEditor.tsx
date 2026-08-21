@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { BlogPost } from "@/lib/blog/types";
 import { BLOG_CATEGORIES } from "@/lib/blog/types";
+import { CoverImageEditor } from "@/components/admin/CoverImageEditor";
 
 const STATUS_STYLES: Record<string, { label: string; dot: string; text: string; bg: string }> = {
   draft: { label: "Draft", dot: "bg-muted", text: "text-muted", bg: "bg-line" },
@@ -167,6 +168,19 @@ export function PostEditor({ post: initialPost }: { post: BlogPost }) {
           </p>
         </div>
       )}
+
+      <div className="mt-6">
+        <CoverImageEditor
+          postId={post.id}
+          coverImage={post.coverImage}
+          coverImageAlt={post.coverImageAlt}
+          title={post.title}
+          onChange={(coverImage, coverImageAlt) => {
+            updateField("coverImage", coverImage);
+            updateField("coverImageAlt", coverImageAlt);
+          }}
+        />
+      </div>
 
       <div className="mt-6 rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
         <input

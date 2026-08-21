@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
-import { PropertyCard } from "@/components/listings/PropertyCard";
-import { filterListings } from "@/lib/listings/filterListings";
-import type { Listing } from "@/lib/listings/provider";
-import { toListingFilters, type AiSearchFilters } from "@/lib/schemas/aiSearchFilters";
+import { useEffect, useState } from "react";
+import { neighborhoodWasBroadened } from "@/lib/listings/idxSearch";
+import type { ScrapedListing } from "@/lib/listings/idxScrape";
+import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
+import type { AiSearchFilters } from "@/lib/schemas/aiSearchFilters";
 
 function formatPrice(n: number) {
   return `$${n.toLocaleString("en-US")}`;
@@ -14,24 +13,37 @@ function formatPrice(n: number) {
 export function AISearchResults({
   query,
   initialFilters,
-  initialResults,
   usedFallback,
-  allListings,
 }: {
   query: string;
   initialFilters: AiSearchFilters;
-  initialResults: Listing[];
   usedFallback: boolean;
-  allListings: Listing[];
 }) {
   const [filters, setFilters] = useState(initialFilters);
+  const [listings, setListings] = useState<ScrapedListing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fallback (keyword) results have no filters to remove, so they stay
-  // static; the AI-parsed path re-filters the full set as chips are removed.
-  const results = useMemo(
-    () => (usedFallback ? initialResults : filterListings(allListings, toListingFilters(filters))),
-    [allListings, filters, usedFallback, initialResults]
-  );
+  const broadened = neighborhoodWasBroadened(filters.neighborhood);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filters.neighborhood) params.set("neighborhood", filters.neighborhood);
+    if (filters.minPrice) params.set("minPrice", String(filters.minPrice));
+    if (filters.maxPrice) params.set("maxPrice", String(filters.maxPrice));
+    if (filters.minBeds) params.set("minBeds", String(filters.minBeds));
+
+    setLoading(true);
+    setError(null);
+    fetch(`/api/listings/search?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) throw new Error(data.error);
+        setListings(data.listings ?? []);
+      })
+      .catch(() => setError("Couldn't load live listings right now. Try again in a moment."))
+      .finally(() => setLoading(false));
+  }, [filters]);
 
   const chips: { key: keyof AiSearchFilters; label: string }[] = [];
   if (filters.neighborhood) chips.push({ key: "neighborhood", label: filters.neighborhood });
@@ -45,19 +57,12 @@ export function AISearchResults({
 
   return (
     <div>
-      <p className="font-sans text-sm text-muted">
-        Showing results for &ldquo;{query}&rdquo;
-      </p>
+      <p className="font-sans text-sm text-muted">Showing results for &ldquo;{query}&rdquo;</p>
 
       {usedFallback ? (
         <p className="mt-2 max-w-xl font-sans text-sm text-gold-deep">
-          We searched by keyword this time rather than parsing your phrase — the AI parser
-          didn&rsquo;t come back with a confident read. Results below are a best-effort keyword
-          match; try{" "}
-          <Link href="/search" className="underline hover:no-underline">
-            the full filter search
-          </Link>{" "}
-          for more control.
+          We couldn&rsquo;t confidently parse that phrase into filters — showing everything on the
+          market instead. Try rephrasing your search.
         </p>
       ) : chips.length > 0 ? (
         <div className="mt-4 flex flex-wrap gap-2" aria-label="Parsed search filters">
@@ -66,7 +71,7 @@ export function AISearchResults({
               key={chip.key}
               type="button"
               onClick={() => removeChip(chip.key)}
-              className="flex items-center gap-2 border border-teal/40 bg-white px-3 py-1.5 font-sans text-sm text-teal-deep transition-colors hover:border-teal hover:bg-paper"
+              className="flex items-center gap-2 rounded-full border border-teal/40 bg-white px-3 py-1.5 font-sans text-sm text-teal-deep transition-colors hover:border-teal hover:bg-paper"
             >
               {chip.label}
               <span aria-hidden="true" className="text-xs">
@@ -78,31 +83,43 @@ export function AISearchResults({
         </div>
       ) : (
         <p className="mt-2 font-sans text-sm text-muted">
-          We didn&rsquo;t pick up any specific filters from that phrase — showing everything
-          newest first.
+          We didn&rsquo;t pick up any specific filters from that phrase — showing everything on
+          the market.
         </p>
       )}
 
-      {results.length > 0 ? (
+      {broadened && (
+        <p className="mt-3 max-w-xl font-sans text-xs text-muted">
+          Note: the MLS search below can&rsquo;t narrow to the specific &ldquo;{filters.neighborhood}
+          &rdquo; area — it&rsquo;s showing all of Key West Island instead.
+        </p>
+      )}
+
+      {loading ? (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {results.map((listing) => (
-            <PropertyCard key={listing.id} listing={listing} />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-[340px] animate-pulse rounded-2xl bg-line" />
           ))}
         </div>
-      ) : (
-        <div className="mt-10 border border-line bg-paper p-8 text-center">
+      ) : error ? (
+        <p className="mt-10 font-sans text-sm text-gold-deep">{error}</p>
+      ) : listings.length === 0 ? (
+        <div className="mt-10 rounded-2xl border border-line bg-paper p-8 text-center">
           <p className="font-sans text-base text-body">
-            Nothing matches those filters right now. Try removing one above, or browse
-            everything on the market.
+            Nothing matches those filters right now. Try removing one above.
           </p>
-          <Link
-            href="/search"
-            className="mt-4 inline-flex min-h-11 items-center justify-center bg-ink px-6 py-2.5 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink"
-          >
-            Search All Key West Listings
-          </Link>
+        </div>
+      ) : (
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {listings.map((listing) => (
+            <ScrapedListingCard key={listing.listingId} listing={listing} />
+          ))}
         </div>
       )}
+
+      <p className="mt-8 font-sans text-xs text-muted">
+        Results sourced live from the Florida Keys MLS via IDX Broker.
+      </p>
     </div>
   );
 }

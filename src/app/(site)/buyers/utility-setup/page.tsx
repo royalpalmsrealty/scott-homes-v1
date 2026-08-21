@@ -1,12 +1,41 @@
 import type { Metadata } from "next";
 import { CalendlyButton } from "@/components/scheduling/CalendlyButton";
 import { brand } from "@/lib/brand";
+import { utilityProviders, utilityStandingNote } from "@/lib/utilityProviders";
 
 export const metadata: Metadata = {
-  title: "Utilities Set Up Instructions and Forms",
+  title: "Setting Up Utilities After a Key West Move",
   description:
-    "Step-by-step instructions for setting up Keys Energy, FKAA water, and Comcast service after your Key West home closing.",
+    "Official links and requirements for setting up electricity, water, internet, and garbage service after your Key West move or closing.",
 };
+
+// The Garbage & Recycling section isn't part of this revision's scope — left
+// exactly as it was, just folded into the same numbered layout as 1–3.
+const GARBAGE_SECTION = {
+  number: "4",
+  name: "Residential Garbage & Recycling",
+  linkLabel: "City of Key West garbage collection info",
+  linkHref: "https://www.cityofkeywest-fl.gov/376/Garbage-Collection",
+  notes: [
+    "For homes within the City of Key West, garbage collection is included in the property's annual tax assessment — you generally don't need to open a separate billing account.",
+    "Waste Management provides one garbage cart per household.",
+    "For a missing/replacement cart, missed collection, or a bulk pickup, call Waste Management at 305-296-8297.",
+  ],
+};
+
+function ExternalLinkIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="inline-block shrink-0">
+      <path
+        d="M7 17L17 7M9 7h8v8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function UtilitySetupPage() {
   return (
@@ -16,123 +45,102 @@ export default function UtilitySetupPage() {
           For Buyers
         </span>
         <h1 className="mt-2 font-display text-3xl leading-tight text-ink sm:text-4xl">
-          Utilities Set Up Instructions and Forms
+          Setting Up Utilities After a Key West Move or Closing
         </h1>
         <span className="mt-4 h-px w-16 bg-gold" aria-hidden="true" />
       </div>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[1.5fr_1fr] lg:gap-16">
         <div className="max-w-[65ch] font-sans text-base leading-relaxed text-body">
-          <p>Congratulations on your upcoming closing! It&rsquo;s time to turn our attention to utility transfer.</p>
-          <p className="mt-5">
-            Attached below are the forms and instructions for filling them out. We&rsquo;ll need the completed
-            forms and a copy of your driver&rsquo;s license (whoever&rsquo;s name is on the form — only one can
-            be used). An iPhone photo is fine, we just need something that can be printed. Once closing is
-            official, the title company will fax a copy of the warranty deed, and we&rsquo;ll take the paperwork
-            to the utility offices to complete the setup.
+          <p>
+            Each utility below is set up directly with the provider, using their own official
+            application — not through our office. The links, requirements, and phone numbers here
+            come straight from each provider&rsquo;s current instructions.
           </p>
-          <p className="mt-5">
-            Please see the instructions below, and be sure to let us know which option you want for the water
-            bill. Send everything back with your driver&rsquo;s license, and we&rsquo;ll take care of the rest.
-          </p>
+          <p className="mt-4 rounded-lg bg-paper px-4 py-3 text-sm text-muted">{utilityStandingNote}</p>
 
-          {/* Keys Energy */}
-          <div className="mt-14 border-t border-line pt-10">
-            <h2 className="font-display text-2xl text-ink">Keys Energy</h2>
-
-            <div className="mt-6 border border-line p-6 sm:p-8">
-              <p className="font-sans text-xs font-medium uppercase tracking-[0.18em] text-gold-deep">
-                Page 1 — Keys Energy Deposit Requirement Form
-              </p>
-              <ul className="mt-4 flex flex-col gap-2.5 text-sm">
-                <li className="flex gap-3">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" aria-hidden="true" />
-                  Complete the top section, Deposit Agreement. You only need to complete and sign the top box.
-                </li>
-                <li className="flex gap-3">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" aria-hidden="true" />
-                  The credit card information is for the $125 deposit only.
-                </li>
-                <li className="flex gap-3">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" aria-hidden="true" />
-                  Be sure to sign the bottom!
-                </li>
-              </ul>
-            </div>
-
-            <div className="mt-5 border border-line p-6 sm:p-8">
-              <p className="font-sans text-xs font-medium uppercase tracking-[0.18em] text-gold-deep">
-                Page 2 — Keys Energy Service Agreement
-              </p>
-              <ul className="mt-4 flex flex-col gap-2.5 text-sm">
-                <li className="flex gap-3">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" aria-hidden="true" />
-                  Complete section one as much as you can.
-                </li>
-                <li className="flex gap-3">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" aria-hidden="true" />
-                  Initial the box in the middle of the page.
-                </li>
-                <li className="flex gap-3">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" aria-hidden="true" />
-                  Sign and date at the bottom — but do not check the box &ldquo;I accept.&rdquo;
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* FKAA */}
-          <div className="mt-14 border-t border-line pt-10">
-            <h2 className="font-display text-2xl text-ink">FKAA (Water)</h2>
-            <div className="mt-6 border border-line p-6 sm:p-8">
-              <p className="font-sans text-xs font-medium uppercase tracking-[0.18em] text-gold-deep">
-                FKAA Application — Agreement for Service
-              </p>
-              <p className="mt-4 text-sm">
-                In the payment information, provide your credit card number, expiration date, and security
-                code. You have two options:
-              </p>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="border border-line bg-paper p-5">
-                  <p className="font-display text-lg text-ink">Option 1 — Autopay</p>
-                  <p className="mt-2 text-sm text-body">
-                    Sign up for Autopay and a $20 service charge is billed to your card — the deposit is
-                    waived. You&rsquo;ll be billed monthly with automatic payment.
-                  </p>
+          {utilityProviders.map((provider) => (
+            <div key={provider.number} className="mt-14 border-t border-line pt-10">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--teal)_0%,var(--gold)_100%)] font-display text-sm font-semibold text-ink">
+                    {provider.number}
+                  </span>
+                  <h2 className="font-display text-2xl text-ink">{provider.name}</h2>
                 </div>
-                <div className="border border-line bg-paper p-5">
-                  <p className="font-display text-lg text-ink">Option 2 — Deposit Only</p>
-                  <p className="mt-2 text-sm text-body">
-                    Use the credit card for the deposit only ($125) and pay monthly by another method. In the
-                    remarks section, write &ldquo;credit card for deposit only.&rdquo;
+                <p className="font-sans text-xs text-muted">Last verified: {provider.lastVerified}</p>
+              </div>
+
+              <div className="mt-6 border border-line p-6 sm:p-8">
+                <p className="font-sans text-xs font-medium uppercase tracking-[0.18em] text-gold-deep">
+                  How to Set Up Service
+                </p>
+                <ol className="mt-4 flex flex-col gap-3 text-sm">
+                  {provider.steps.map((step, i) => (
+                    <li key={i} className="flex gap-3">
+                      <span className="shrink-0 font-display text-sm text-teal-deep">{i + 1}.</span>
+                      {/* Steps are hand-authored HTML (links to official pages), not
+                          user input — safe to render directly. */}
+                      {/* eslint-disable-next-line react/no-danger */}
+                      <span
+                        className="[&_a]:font-medium [&_a]:text-teal-deep [&_a]:underline [&_a]:hover:no-underline"
+                        dangerouslySetInnerHTML={{ __html: step }}
+                      />
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              {provider.note && (
+                <p className="mt-4 font-sans text-xs text-muted">{provider.note}</p>
+              )}
+
+              <div className="mt-5 flex flex-col gap-1.5 text-sm">
+                {provider.contact.map((item) => (
+                  <p key={item.label} className="text-muted">
+                    <span className="text-body">{item.label}:</span>{" "}
+                    {item.href ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-medium text-teal-deep hover:underline"
+                      >
+                        {item.value}
+                        <ExternalLinkIcon />
+                      </a>
+                    ) : (
+                      <span className="text-ink">{item.value}</span>
+                    )}
                   </p>
-                </div>
+                ))}
               </div>
             </div>
-          </div>
+          ))}
 
-          {/* Comcast */}
+          {/* Section 4 — Garbage & Recycling, unchanged from before */}
           <div className="mt-14 border-t border-line pt-10">
-            <h2 className="font-display text-2xl text-ink">Comcast — High-Speed Internet &amp; Cable TV</h2>
-            <div className="mt-6 border border-line p-6 sm:p-8">
-              <p className="text-sm text-body">
-                We also have a concierge-type service for phone, internet, and cable through Comcast. The
-                contact is <strong className="text-ink">Cassandra</strong>, who can explain the different
-                services and plans so you can select what&rsquo;s best for you.
-              </p>
-              <a
-                href="tel:3059248677"
-                className="mt-4 inline-flex min-h-11 items-center justify-center bg-ink px-5 py-2.5 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink"
-              >
-                Call Cassandra: 305-924-8677
-              </a>
+            <div className="flex items-center gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--teal)_0%,var(--gold)_100%)] font-display text-sm font-semibold text-ink">
+                {GARBAGE_SECTION.number}
+              </span>
+              <h2 className="font-display text-2xl text-ink">{GARBAGE_SECTION.name}</h2>
             </div>
-          </div>
 
-          {/* Forms note — no PDFs supplied yet, so no fake download links. */}
-          <div className="mt-10 border-l-4 border-teal bg-paper p-6 text-sm text-body">
-            The Keys Energy and FKAA forms referenced above will be available to download directly from this
-            page once uploaded — for now, our office will send them to you directly by email.
+            <a
+              href={GARBAGE_SECTION.linkHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink"
+            >
+              Go to {GARBAGE_SECTION.linkLabel} &rarr;
+            </a>
+
+            <ul className="mt-5 flex flex-col gap-2 text-sm text-muted">
+              {GARBAGE_SECTION.notes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
           </div>
         </div>
 
@@ -140,10 +148,11 @@ export default function UtilitySetupPage() {
         <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
           <div className="border border-line p-6 sm:p-8">
             <p className="font-sans text-xs font-medium uppercase tracking-[0.18em] text-gold-deep">
-              Questions About Setup?
+              Questions About Any of This?
             </p>
             <p className="mt-3 font-sans text-sm text-body">
-              Reach out to our office directly and we&rsquo;ll walk you through the forms and next steps.
+              These are all handled directly between you and each provider — but if anything's
+              unclear, reach out and we're happy to help point you in the right direction.
             </p>
             <div className="mt-4 flex flex-col gap-3">
               <a

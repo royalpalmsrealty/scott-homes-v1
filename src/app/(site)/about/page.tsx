@@ -59,8 +59,8 @@ export default function AboutPage() {
           </p>
           <p className="mt-4 max-w-2xl font-sans text-base text-body">
             We serve buyers, sellers, and investors across Key West and the surrounding Lower
-            Keys, with a focus on Old Town, New Town, Truman Annex, Casa Marina, Midtown, and
-            the island&rsquo;s waterfront and transient-licensed inventory.
+            Keys, with a focus on Old Town, New Town, Truman Annex, Casa Marina, Midtown West,
+            Midtown East, and the island&rsquo;s waterfront and transient-licensed inventory.
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-3">

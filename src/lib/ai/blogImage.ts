@@ -86,3 +86,31 @@ export async function generateAndStoreCoverImage(params: {
     return null;
   }
 }
+
+// Manual replacement upload — same bucket as the AI-generated covers, so
+// both kinds of image are managed identically (public URL, same cleanup path).
+export async function uploadCoverImageFile(file: File, slug: string): Promise<string> {
+  await ensureBucket();
+  const supabase = getSupabase();
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${slug}-${Date.now()}.${ext}`;
+  const bytes = Buffer.from(await file.arrayBuffer());
+
+  const { error } = await supabase.storage.from(BUCKET).upload(path, bytes, { contentType: file.type });
+  if (error) throw new Error(`Failed to upload cover image: ${error.message}`);
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// Best-effort cleanup when a cover image is replaced — only ever touches
+// files inside our own bucket, so an old externally-hosted URL (or none) is
+// silently left alone rather than treated as an error.
+export async function deleteCoverImageIfOwned(url: string | undefined): Promise<void> {
+  if (!url || !isSupabaseConfigured()) return;
+  const marker = `/storage/v1/object/public/${BUCKET}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return;
+  const path = url.slice(idx + marker.length);
+  await getSupabase().storage.from(BUCKET).remove([path]).catch(() => {});
+}

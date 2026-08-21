@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { AISearchResults } from "@/components/search/AISearchResults";
 import { parseSearchQuery } from "@/lib/ai/searchParser";
-import { keywordSearchListings, filterListings } from "@/lib/listings/filterListings";
-import { dummyListings } from "@/lib/dummyListings";
-import { toListingFilters } from "@/lib/schemas/aiSearchFilters";
 
 export const metadata: Metadata = {
   title: "Search Results",
@@ -32,21 +29,12 @@ export default async function AISearchPage({
   }
 
   const { filters, usedFallback } = await parseSearchQuery(query);
-  const initialResults = usedFallback
-    ? keywordSearchListings(dummyListings, query)
-    : filterListings(dummyListings, toListingFilters(filters));
 
   return (
     <section className="mx-auto max-w-[1280px] px-4 py-14 sm:px-6 sm:py-24 lg:px-8">
       <SectionHeading eyebrow="Natural Language Search" heading="Search Results" as="h1" />
       <div className="mt-8">
-        <AISearchResults
-          query={query}
-          initialFilters={filters}
-          initialResults={initialResults}
-          usedFallback={usedFallback}
-          allListings={dummyListings}
-        />
+        <AISearchResults query={query} initialFilters={filters} usedFallback={usedFallback} />
       </div>
     </section>
   );

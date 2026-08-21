@@ -5,8 +5,10 @@ import { generateBlogDraft, suggestBlogTopics, extractVerifyWarnings } from "@/l
 import { createPost, setPendingApproval } from "@/lib/blog/store";
 import { brand } from "@/lib/brand";
 
-// Configured in vercel.json to run weekly. Off by default (weeklyAutoDraftEnabled
-// in siteConfig.ts) — turn on once Scott trusts the AI writer's output.
+// Configured in vercel.json to run weekly (Mondays). Requires CRON_SECRET to
+// be set — Vercel automatically sends it as a Bearer header when invoking
+// cron jobs, so this rejects any other caller. Always lands as
+// pending_approval, never published — see setPendingApproval() below.
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

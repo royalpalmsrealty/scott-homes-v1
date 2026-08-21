@@ -1,4 +1,5 @@
-import { callClaude, extractJson, isAnthropicConfigured } from "./anthropic";
+import { callOpenAI, isOpenAIConfigured } from "./openai";
+import { extractJson } from "./anthropic";
 import { AiSearchFiltersSchema, emptyFilters, type AiSearchFilters } from "@/lib/schemas/aiSearchFilters";
 import { neighborhoods } from "@/lib/neighborhoods";
 
@@ -25,20 +26,20 @@ Rules:
 export async function parseSearchQuery(
   query: string
 ): Promise<{ filters: AiSearchFilters; usedFallback: boolean }> {
-  if (!isAnthropicConfigured()) {
+  if (!isOpenAIConfigured()) {
     return { filters: emptyFilters, usedFallback: true };
   }
 
   try {
-    const text = await callClaude({
+    const text = await callOpenAI({
       system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: query }],
-      maxTokens: 300,
+      prompt: query,
+      maxOutputTokens: 300,
     });
     const parsed = AiSearchFiltersSchema.parse(extractJson(text));
     return { filters: parsed, usedFallback: false };
   } catch (error) {
-    console.error("AI search parse failed, falling back to keyword search", error);
+    console.error("AI search parse failed, falling back to unfiltered search", error);
     return { filters: emptyFilters, usedFallback: true };
   }
 }

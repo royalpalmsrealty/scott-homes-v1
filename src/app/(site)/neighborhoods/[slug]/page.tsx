@@ -4,13 +4,13 @@ import { notFound } from "next/navigation";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { NeighborhoodPhoto } from "@/components/neighborhoods/NeighborhoodPhoto";
 import { NeighborhoodAlertForm } from "@/components/neighborhoods/NeighborhoodAlertForm";
-import { PropertyCard } from "@/components/listings/PropertyCard";
-import { neighborhoods, getNeighborhood, getAdjacentNeighborhoods } from "@/lib/neighborhoods";
-import { dummyListings } from "@/lib/dummyListings";
+import { NeighborhoodFilterChips } from "@/components/neighborhoods/NeighborhoodFilterChips";
+import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
+import { getNeighborhood, getAdjacentNeighborhoods } from "@/lib/neighborhoods";
+import { neighborhoodWasBroadened } from "@/lib/listings/idxSearch";
+import { fetchIdxListings, fetchIdxResultsCount } from "@/lib/listings/idxScrape";
 
-export function generateStaticParams() {
-  return neighborhoods.map((n) => ({ slug: n.slug }));
-}
+export const dynamic = "force-dynamic"; // listings below are a live MLS lookup
 
 export async function generateMetadata({
   params,
@@ -29,21 +29,28 @@ export async function generateMetadata({
 
 export default async function NeighborhoodPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ type?: string; feature?: string }>;
 }) {
   const { slug } = await params;
   const neighborhood = getNeighborhood(slug);
   if (!neighborhood) notFound();
 
-  const activeListings = dummyListings.filter((l) => l.neighborhood === neighborhood.name);
-  const adjacent = getAdjacentNeighborhoods(slug);
+  const { type, feature } = await searchParams;
+  const condo = type === "condo";
+  const waterfront = feature === "waterfront";
 
-  const stats = [
-    { label: "Median Price", value: `$${neighborhood.medianPrice.toLocaleString("en-US")}` },
-    { label: "Days on Market", value: `${neighborhood.daysOnMarket}` },
-    { label: "Active Inventory", value: `${neighborhood.activeInventory}` },
-  ];
+  const filters = { neighborhood: neighborhood.name, condo, waterfront };
+  const [listings, resultsCount] = await Promise.all([
+    fetchIdxListings(filters, 24).catch(() => []),
+    fetchIdxResultsCount(filters).catch(() => ({ count: 0, isMinimum: false })),
+  ]);
+  const broadened = neighborhoodWasBroadened(neighborhood.name);
+
+  const adjacent = getAdjacentNeighborhoods(slug);
+  const hasSampleStats = neighborhood.medianPrice !== undefined;
 
   return (
     <>
@@ -80,43 +87,74 @@ export default async function NeighborhoodPage({
           ))}
         </div>
 
-        {/* Market information — sample data until the MLS layer (Phase 4) is wired up. */}
-        <div className="mt-10 grid grid-cols-3 gap-4 border border-line p-6 sm:max-w-lg">
-          {stats.map((stat) => (
-            <div key={stat.label}>
-              <p className="font-display text-2xl text-gold">{stat.value}</p>
-              <p className="mt-1 font-sans text-xs uppercase tracking-wide text-muted">
-                {stat.label}
-              </p>
+        {hasSampleStats && (
+          <>
+            <div className="mt-10 grid grid-cols-2 gap-4 border border-line p-6 sm:max-w-sm">
+              {neighborhood.medianPrice !== undefined && (
+                <div>
+                  <p className="font-display text-2xl text-gold">
+                    ${neighborhood.medianPrice.toLocaleString("en-US")}
+                  </p>
+                  <p className="mt-1 font-sans text-xs uppercase tracking-wide text-muted">Median Price</p>
+                </div>
+              )}
+              {neighborhood.daysOnMarket !== undefined && (
+                <div>
+                  <p className="font-display text-2xl text-gold">{neighborhood.daysOnMarket}</p>
+                  <p className="mt-1 font-sans text-xs uppercase tracking-wide text-muted">Days on Market</p>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-        <p className="mt-2 font-sans text-xs text-muted">
-          Sample market data — connects to live figures once the MLS layer is wired up.
-        </p>
+            <p className="mt-2 font-sans text-xs text-muted">
+              Sample market data — connects to live figures once a full market-stats integration
+              is wired up.
+            </p>
+          </>
+        )}
       </section>
 
       <section className="bg-paper py-14 sm:py-24">
         <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
-          <SectionHeading
-            eyebrow="Active Listings"
-            heading={`Homes for Sale in ${neighborhood.name}`}
-            as="h2"
-          />
-          {activeListings.length > 0 ? (
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <SectionHeading
+              eyebrow="Active Listings"
+              heading={`Homes for Sale in ${neighborhood.name}`}
+              as="h2"
+            />
+            <p className="font-sans text-sm text-muted">
+              {resultsCount.isMinimum
+                ? `${resultsCount.count}+ live results`
+                : `${resultsCount.count} live result${resultsCount.count === 1 ? "" : "s"}`}
+            </p>
+          </div>
+
+          <div className="mt-6">
+            <NeighborhoodFilterChips />
+          </div>
+
+          {broadened && (
+            <p className="mt-3 max-w-xl font-sans text-xs text-muted">
+              Note: the MLS search can&rsquo;t narrow to the specific &ldquo;{neighborhood.name}
+              &rdquo; area — these results cover all of Key West Island instead.
+            </p>
+          )}
+
+          {listings.length > 0 ? (
             <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {activeListings.map((listing) => (
-                <PropertyCard key={listing.id} listing={listing} />
+              {listings.map((listing) => (
+                <ScrapedListingCard key={listing.listingId} listing={listing} />
               ))}
             </div>
           ) : (
-            <div className="mt-10 border border-line bg-white p-8 text-center">
+            <div className="mt-10 rounded-2xl border border-line bg-white p-8 text-center">
               <p className="font-sans text-base text-body">
-                No active listings in {neighborhood.name} right now.
+                {condo || waterfront
+                  ? `No matching listings in ${neighborhood.name} right now — try clearing a filter above.`
+                  : `No active listings in ${neighborhood.name} right now.`}
               </p>
               <Link
-                href="/search"
-                className="mt-4 inline-flex min-h-11 items-center justify-center bg-ink px-6 py-2.5 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink"
+                href="/search/ai"
+                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-6 py-2.5 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink"
               >
                 Search All Key West Listings
               </Link>
