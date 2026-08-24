@@ -7,7 +7,7 @@ import { NeighborhoodAlertForm } from "@/components/neighborhoods/NeighborhoodAl
 import { NeighborhoodFilterChips } from "@/components/neighborhoods/NeighborhoodFilterChips";
 import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
 import { getNeighborhood, getAdjacentNeighborhoods } from "@/lib/neighborhoods";
-import { neighborhoodWasBroadened } from "@/lib/listings/idxSearch";
+import { getNeighborhoodFilterStatus } from "@/lib/listings/idxSearch";
 import { fetchIdxListings, fetchIdxResultsCount } from "@/lib/listings/idxScrape";
 
 export const dynamic = "force-dynamic"; // listings below are a live MLS lookup
@@ -48,12 +48,18 @@ export default async function NeighborhoodPage({
   const backQuery = backParams.toString();
   const backHref = `/neighborhoods/${slug}${backQuery ? `?${backQuery}` : ""}`;
 
+  // Client-reported bug fix (2026-08-22): never silently fall back to an
+  // all-of-Key-West search when the requested neighborhood can't be
+  // filtered precisely — skip the fetch entirely and show that honestly
+  // instead of returning unrelated properties.
+  const filterStatus = getNeighborhoodFilterStatus(neighborhood.name);
   const filters = { neighborhood: neighborhood.name, condo, waterfront };
-  const [listings, resultsCount] = await Promise.all([
-    fetchIdxListings(filters, 24).catch(() => []),
-    fetchIdxResultsCount(filters).catch(() => ({ count: 0, isMinimum: false })),
-  ]);
-  const broadened = neighborhoodWasBroadened(neighborhood.name);
+  const [listings, resultsCount] = filterStatus.available
+    ? await Promise.all([
+        fetchIdxListings(filters, 24).catch(() => []),
+        fetchIdxResultsCount(filters).catch(() => ({ count: 0, isMinimum: false })),
+      ])
+    : [[] as Awaited<ReturnType<typeof fetchIdxListings>>, { count: 0, isMinimum: false }];
 
   const adjacent = getAdjacentNeighborhoods(slug);
   const hasSampleStats = neighborhood.medianPrice !== undefined;
@@ -77,6 +83,7 @@ export default async function NeighborhoodPage({
         name={neighborhood.name}
         image={neighborhood.image}
         imageAlt={neighborhood.imageAlt}
+        imageIsGeneric={neighborhood.imageIsGeneric}
         priority
         className="h-[40vh] min-h-[280px] w-full"
       />
@@ -136,25 +143,38 @@ export default async function NeighborhoodPage({
               heading={`Homes for Sale in ${neighborhood.name}`}
               as="h2"
             />
-            <p className="font-sans text-sm text-muted">
-              {resultsCount.isMinimum
-                ? `${resultsCount.count}+ live results`
-                : `${resultsCount.count} live result${resultsCount.count === 1 ? "" : "s"}`}
-            </p>
+            {filterStatus.available && (
+              <p className="font-sans text-sm text-muted">
+                {resultsCount.isMinimum
+                  ? `${resultsCount.count}+ live results`
+                  : `${resultsCount.count} live result${resultsCount.count === 1 ? "" : "s"}`}
+              </p>
+            )}
           </div>
 
-          <div className="mt-6">
-            <NeighborhoodFilterChips />
-          </div>
-
-          {broadened && (
-            <p className="mt-3 max-w-xl font-sans text-xs text-muted">
-              Note: the MLS search can&rsquo;t narrow to the specific &ldquo;{neighborhood.name}
-              &rdquo; area — these results cover all of Key West Island instead.
-            </p>
+          {filterStatus.available && (
+            <div className="mt-6">
+              <NeighborhoodFilterChips />
+            </div>
           )}
 
-          {listings.length > 0 ? (
+
+          {!filterStatus.available ? (
+            <div className="mt-10 rounded-2xl border border-line bg-white p-8 text-center">
+              <p className="font-sans text-base text-body">
+                Live MLS search can&rsquo;t currently be narrowed to {neighborhood.name}
+                specifically — IDX Broker&rsquo;s public search for this account doesn&rsquo;t
+                expose that level of neighborhood detail, so we&rsquo;re not showing unrelated
+                Key West listings here instead.
+              </p>
+              <Link
+                href="/search"
+                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-6 py-2.5 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink"
+              >
+                Search All Key West Listings
+              </Link>
+            </div>
+          ) : listings.length > 0 ? (
             <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {listings.map((listing) => (
                 <ScrapedListingCard

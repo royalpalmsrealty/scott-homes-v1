@@ -19,6 +19,8 @@ export type ScrapedListing = {
   photoUrl: string | null;
   status: string;
   description: string;
+  lat: number | null;
+  lng: number | null;
 };
 
 function detailPath(mlsId: string, listingId: string, addressSlug: string) {
@@ -98,6 +100,20 @@ export async function fetchListingDetail(listingId: string, addressSlug: string)
   const html = $.html();
   const lat = html.match(/data-lat="([^"]*)"/)?.[1];
   const lng = html.match(/data-lng="([^"]*)"/)?.[1];
+  // Fallback only — the "Status:" summary field itself is normally reliable
+  // (confirmed live for both active and sold listings), this just covers
+  // the rare case it's missing. Case-insensitive: cheerio lowercases
+  // attribute names when it re-serializes the parsed DOM, so the raw server
+  // HTML's "data-idxStatus" comes back out as "data-idxstatus" here.
+  const idxStatusAttr = html.match(/data-idxstatus="([^"]*)"/i)?.[1];
+  // A sold/closed listing's own "Status:" field reads "Closed" (matches the
+  // account's admin dashboard, which also labels these CLOSED) — normalize
+  // to "Sold" for buyer-facing display, since that's what the rest of the
+  // site's copy and the /sold page use.
+  function normalizeStatus(raw: string | undefined): string | undefined {
+    if (!raw) return raw;
+    return raw.toLowerCase() === "closed" ? "Sold" : raw;
+  }
 
   let photos: string[] = [];
   if (galleryRes?.ok) {
@@ -116,7 +132,10 @@ export async function fetchListingDetail(listingId: string, addressSlug: string)
     state: $(".IDX-detailsAddressStateAbrv").first().text().trim(),
     zip: $(".IDX-detailsAddressZipcode").first().text().trim(),
     price: parseNumber($(".IDX-detailsPrice").first().text()) ?? 0,
-    status: findSummaryField($, "Status") ?? "Active",
+    status:
+      normalizeStatus(findSummaryField($, "Status")) ||
+      normalizeStatus(idxStatusAttr ? idxStatusAttr.charAt(0).toUpperCase() + idxStatusAttr.slice(1) : undefined) ||
+      "Active",
     beds: parseNumber(findSummaryField($, "Bedrooms")),
     fullBaths: parseNumber(findSummaryField($, "Full Baths")),
     partialBaths: parseNumber(findSummaryField($, "Partial Baths")),
@@ -148,6 +167,15 @@ function parseNumber(text: string | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// parseNumber strips "-" along with currency symbols/commas — fine for
+// prices/beds/baths (always positive) but wrong for longitude, which is
+// always negative here (Key West sits west of the prime meridian).
+function parseCoord(text: string | undefined): number | null {
+  if (!text) return null;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : null;
+}
+
 export type IdxResultsCount = { count: number; isMinimum: boolean };
 
 // The authoritative match total — separate from ScrapedListing rows, which
@@ -174,17 +202,7 @@ export async function fetchIdxResultsCount(filters: IdxSearchFilters): Promise<I
   return { count, isMinimum };
 }
 
-export async function fetchIdxListings(filters: IdxSearchFilters, perPage = 24): Promise<ScrapedListing[]> {
-  const url = new URL(buildIdxSearchUrl(filters));
-  url.searchParams.set("per", String(perPage));
-
-  const res = await fetch(url.toString(), { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!res.ok) {
-    throw new Error(`IDX results fetch failed: ${res.status}`);
-  }
-  const html = await res.text();
-  const $ = cheerio.load(html);
-
+function parseResultsCells($: cheerio.CheerioAPI): ScrapedListing[] {
   const listings: ScrapedListing[] = [];
 
   $(".IDX-resultsCell").each((_, el) => {
@@ -210,6 +228,10 @@ export async function fetchIdxListings(filters: IdxSearchFilters, perPage = 24):
       addressSlug,
       address: `${number} ${street}`.trim(),
       city: `${city}, ${state} ${zip}`.trim(),
+      // On the sold/pending page this is the actual sold price, not a list
+      // price — confirmed live against the account's own admin listing
+      // (605503 / 41 Cannon Royal Drive: data-price="3700000" matches its
+      // "Sold For: $3,700,000" detail-page label exactly).
       price: parseNumber(cell.attr("data-price")) ?? 0,
       beds: parseNumber(cell.find(".IDX-resultsField-bedrooms .IDX-resultsText").first().text()),
       baths: parseNumber(cell.find(".IDX-resultsField-totalBaths .IDX-resultsText").first().text()),
@@ -217,8 +239,55 @@ export async function fetchIdxListings(filters: IdxSearchFilters, perPage = 24):
       photoUrl: cell.find(".IDX-resultsPhotoImg").first().attr("src") ?? null,
       status: cell.attr("data-idxstatus") ?? "active",
       description: cell.find(".IDX-resultsDescription").first().text().trim(),
+      lat: parseCoord(cell.attr("data-lat")),
+      lng: parseCoord(cell.attr("data-lng")),
     });
   });
 
   return listings;
+}
+
+export async function fetchIdxListings(filters: IdxSearchFilters, perPage = 24): Promise<ScrapedListing[]> {
+  const url = new URL(buildIdxSearchUrl(filters));
+  url.searchParams.set("per", String(perPage));
+
+  const res = await fetch(url.toString(), { headers: { "User-Agent": "Mozilla/5.0" } });
+  if (!res.ok) {
+    throw new Error(`IDX results fetch failed: ${res.status}`);
+  }
+  return parseResultsCells(cheerio.load(await res.text()));
+}
+
+const SOLD_PENDING_URL = "https://search.royalpalmsrealty.com/idx/soldpending";
+
+// This is Scott's own past sold/pending listings specifically (tied to his
+// Agent ID on the account), not a general MLS-wide sold-comps feed — a real,
+// public IDX Broker page (no login/access-code wall), confirmed live
+// against the account's own admin "Sold/Pending" list. Fixed at 10 total
+// results regardless of `per` — that's the real count, not a page-size cap.
+export async function fetchSoldListings(perPage = 24): Promise<ScrapedListing[]> {
+  const url = new URL(SOLD_PENDING_URL);
+  url.searchParams.set("per", String(perPage));
+
+  const res = await fetch(url.toString(), { headers: { "User-Agent": "Mozilla/5.0" } });
+  if (!res.ok) {
+    throw new Error(`IDX sold/pending fetch failed: ${res.status}`);
+  }
+  return parseResultsCells(cheerio.load(await res.text()));
+}
+
+const FEATURED_URL = "https://search.royalpalmsrealty.com/idx/featured";
+
+// Scott's own currently-active Featured listings (tied to his Agent/Featured
+// IDs on the account) — a real, public IDX Broker page, confirmed live
+// (data-propCat="featured" on each result cell).
+export async function fetchFeaturedListings(perPage = 24): Promise<ScrapedListing[]> {
+  const url = new URL(FEATURED_URL);
+  url.searchParams.set("per", String(perPage));
+
+  const res = await fetch(url.toString(), { headers: { "User-Agent": "Mozilla/5.0" } });
+  if (!res.ok) {
+    throw new Error(`IDX featured fetch failed: ${res.status}`);
+  }
+  return parseResultsCells(cheerio.load(await res.text()));
 }

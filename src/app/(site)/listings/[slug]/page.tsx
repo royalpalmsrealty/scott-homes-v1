@@ -66,6 +66,9 @@ export default async function ListingDetailPage({
   const mapsUrl =
     listing.lat && listing.lng ? `https://www.google.com/maps?q=${listing.lat},${listing.lng}` : null;
   const statusTone = STATUS_TONE[listing.status] ?? "bg-teal/15 text-teal-deep";
+  // A sold home can't be shown or offered on — the CTA panel reflects that
+  // instead of inviting an offer on something that's already off the market.
+  const isSold = listing.status === "Sold";
 
   const stats = [
     { label: "Beds", value: listing.beds, color: "#0f6e6b", icon: BedIcon },
@@ -91,6 +94,9 @@ export default async function ListingDetailPage({
             <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
             {listing.status}
           </span>
+          {isSold && (
+            <p className="mt-3 font-sans text-xs font-medium uppercase tracking-wide text-muted">Sold For</p>
+          )}
           <h1 className="mt-4 font-display text-4xl leading-none text-ink sm:text-5xl">
             {formatPrice(listing.price)}
           </h1>
@@ -174,30 +180,55 @@ export default async function ListingDetailPage({
             </div>
           )}
           <div className="relative p-6 sm:p-7">
-            <p className="font-display text-xl text-white">Interested in this home?</p>
-            <p className="mt-2 font-sans text-sm text-white/80">
-              Reach out to {brand.broker.name} directly to schedule a showing or ask a question.
-            </p>
-            <div className="mt-5 flex flex-col gap-3">
-              <CalendlyButton
-                utmContent="listing-detail-page"
-                className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--teal)_0%,var(--gold)_100%)] px-5 font-sans text-sm font-semibold text-ink transition-transform hover:scale-[1.03]"
-              >
-                Schedule a Showing
-              </CalendlyButton>
-              <Link
-                href={`/listings/${slug}/offer`}
-                className="inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 font-sans text-sm font-semibold text-ink transition-colors hover:bg-white/90"
-              >
-                Make an Offer
-              </Link>
-              <a
-                href={brand.phone.href}
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/40 px-5 font-sans text-sm font-medium text-white transition-colors hover:bg-white/10"
-              >
-                Call {brand.phone.display}
-              </a>
-            </div>
+            {isSold ? (
+              <>
+                <p className="font-display text-xl text-white">This home has sold</p>
+                <p className="mt-2 font-sans text-sm text-white/80">
+                  Looking for something similar? Reach out to {brand.broker.name} directly.
+                </p>
+                <div className="mt-5 flex flex-col gap-3">
+                  <Link
+                    href="/search"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--teal)_0%,var(--gold)_100%)] px-5 font-sans text-sm font-semibold text-ink transition-transform hover:scale-[1.03]"
+                  >
+                    Search Active Listings
+                  </Link>
+                  <a
+                    href={brand.phone.href}
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/40 px-5 font-sans text-sm font-medium text-white transition-colors hover:bg-white/10"
+                  >
+                    Call {brand.phone.display}
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="font-display text-xl text-white">Interested in this home?</p>
+                <p className="mt-2 font-sans text-sm text-white/80">
+                  Reach out to {brand.broker.name} directly to schedule a showing or ask a question.
+                </p>
+                <div className="mt-5 flex flex-col gap-3">
+                  <CalendlyButton
+                    utmContent="listing-detail-page"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--teal)_0%,var(--gold)_100%)] px-5 font-sans text-sm font-semibold text-ink transition-transform hover:scale-[1.03]"
+                  >
+                    Schedule a Showing
+                  </CalendlyButton>
+                  <Link
+                    href={`/listings/${slug}/offer`}
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 font-sans text-sm font-semibold text-ink transition-colors hover:bg-white/90"
+                  >
+                    Make an Offer
+                  </Link>
+                  <a
+                    href={brand.phone.href}
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/40 px-5 font-sans text-sm font-medium text-white transition-colors hover:bg-white/10"
+                  >
+                    Call {brand.phone.display}
+                  </a>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

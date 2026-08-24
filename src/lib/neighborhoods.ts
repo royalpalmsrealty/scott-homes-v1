@@ -15,6 +15,11 @@ export type Neighborhood = {
   imageDirection: string;
   image?: string;
   imageAlt?: string;
+  // True when `image` is a generic, licensed stock photo standing in until
+  // Scott supplies a real photo of this specific area — NeighborhoodPhoto
+  // shows a small "Representative photo" label whenever this is set, so a
+  // generic image is never mistaken for an actual picture of the place.
+  imageIsGeneric?: boolean;
   // Optional and left unset for Midtown East / New Town (added 2026-08-20) —
   // these were sample/placeholder numbers for the original 8, not real MLS
   // data (see the "Sample market data" disclosures already on both the grid
@@ -151,6 +156,9 @@ export const neighborhoods: Neighborhood[] = [
     name: "Midtown East",
     tileBlurb: "The eastern half of Midtown, close to shopping and the airport.",
     imageDirection: "Practical single-family streets toward the island's east end",
+    image: "/neighborhoods/midtown-east.jpg",
+    imageAlt: "A Key West conch-style house with palm trees — a representative Keys residential scene",
+    imageIsGeneric: true,
     overview: [
       "Midtown East covers the eastern stretch of Key West's Midtown area, generally closer to the airport and the island's shopping corridors than Midtown West.",
       "Like the rest of Midtown, it's built out with more conventional single-family homes than Old Town's historic construction — a practical, year-round residential option rather than a tourist-facing one.",
@@ -164,6 +172,9 @@ export const neighborhoods: Neighborhood[] = [
     name: "New Town",
     tileBlurb: "The island's newer eastern development, near the airport and big-box shopping.",
     imageDirection: "Newer commercial corridors and residential streets on the island's east end",
+    image: "/neighborhoods/new-town.jpg",
+    imageAlt: "A simple white Key West cottage with a palm tree — a representative Keys residential scene",
+    imageIsGeneric: true,
     overview: [
       "New Town is the newer, eastern half of Key West — developed later than Old Town, with wider streets, more conventional construction, and easier parking, and home to the airport and most of the island's larger shopping.",
       "It's a common fit for buyers who want to live on the island year-round with more day-to-day convenience, trading Old Town's historic density for practicality.",

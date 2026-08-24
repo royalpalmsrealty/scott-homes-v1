@@ -75,6 +75,8 @@ export const sellMenu = [
 export const primaryNav = [
   { label: "Search", href: "/search" },
   { label: "Neighborhoods", href: "/neighborhoods" },
+  { label: "Featured", href: "/featured" },
+  { label: "Sold Listings", href: "/sold" },
   { label: "Rentals", href: "/rentals" },
   { label: "Buyers", children: buyersMenu },
   { label: "Sellers", children: sellMenu },

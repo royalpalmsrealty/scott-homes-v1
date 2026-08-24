@@ -20,6 +20,10 @@ type NeighborhoodPhotoProps = {
    * it directly instead of the placeholder. */
   image?: string;
   imageAlt?: string;
+  /** Set when `image` is a generic licensed stock photo, not a real photo
+   * of this specific place — shows a small honest label so it's never
+   * mistaken for an actual depiction of the neighborhood. */
+  imageIsGeneric?: boolean;
   /** Matches R6's "priority on the first two only" rule for the index/teaser grids. */
   priority?: boolean;
 };
@@ -33,6 +37,7 @@ export function NeighborhoodPhoto({
   className = "",
   image,
   imageAlt,
+  imageIsGeneric = false,
   priority = false,
 }: NeighborhoodPhotoProps) {
   if (image) {
@@ -46,6 +51,11 @@ export function NeighborhoodPhoto({
           sizes="(min-width: 1024px) 25vw, 50vw"
           className="object-cover"
         />
+        {imageIsGeneric && (
+          <span className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 font-sans text-[10px] uppercase tracking-wide text-white backdrop-blur">
+            Representative Photo
+          </span>
+        )}
       </div>
     );
   }

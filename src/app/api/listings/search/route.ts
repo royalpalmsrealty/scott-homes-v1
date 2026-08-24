@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchIdxListings } from "@/lib/listings/idxScrape";
+import { getNeighborhoodFilterStatus } from "@/lib/listings/idxSearch";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function GET(request: Request) {
@@ -14,6 +15,21 @@ export async function GET(request: Request) {
   const minPrice = searchParams.get("minPrice");
   const maxPrice = searchParams.get("maxPrice");
   const minBeds = searchParams.get("minBeds");
+
+  // Client-reported bug fix (2026-08-22): a neighborhood IDX can't filter
+  // precisely used to silently fall through to an unbounded search here —
+  // refuse instead of returning unrelated properties (or, worse, the whole
+  // multi-county board once the "always default to Key West" fallback was
+  // removed from buildIdxSearchUrl).
+  if (neighborhood) {
+    const status = getNeighborhoodFilterStatus(neighborhood);
+    if (!status.available) {
+      return NextResponse.json(
+        { error: `Live MLS search can't be narrowed to "${neighborhood}" specifically.`, neighborhoodUnavailable: true },
+        { status: 200 }
+      );
+    }
+  }
 
   try {
     const listings = await fetchIdxListings({

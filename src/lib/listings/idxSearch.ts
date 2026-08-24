@@ -9,27 +9,81 @@
 // selected. The advanced-search form's inline script renames the actual
 // select's submitted field to "city[]" / "county[]" / "zipcode[]" on change
 // (see idx('#IDX-ccz-select').attr('name', ...)). Passing "ccz=<id>" directly
-// is silently ignored — confirmed live: it returned the entire unfiltered
-// board (Marathon, Islamorada, Plantation Key included) instead of Shark
-// Key. "city[]=<id>" was verified to actually restrict results (Shark Key
-// alone: 6 real matches, addressed to Shark Key/Sunset Key; Key West alone:
-// 283, addressed to Key West/Key Haven). This also means neighborhood
-// filtering in the AI search feature (built earlier the same day) was
-// silently non-functional until this fix.
+// is silently ignored.
 const IDX_BASE_URL = "https://search.royalpalmsrealty.com/idx/results/listings";
 const IDX_ID = "b066"; // Florida Keys MLS, per mls/approvedmls
 
-// IDX's own geography only goes down to "island" level (its ccz field), not
-// Key West's individual neighborhoods — Shark Key happens to be its own
-// island so it maps directly; everything else on our neighborhoods page is
-// a sub-area of Key West island itself, so those all broaden to the same
-// Key West city ID rather than something more specific IDX can't express.
-const NEIGHBORHOOD_TO_CITY_ID: Record<string, string> = {
-  "Shark Key": "54150",
+// CORRECTED 2026-08-24 (client-verified): the real per-neighborhood field is
+// a_locationTaxLegalKwNeighborhood[] — not exposed on the public search/
+// advanced-search forms (an earlier pass through this project only found
+// a_propStatus/a_propSubType there), but confirmed live by the client
+// directly against the results endpoint. Client-confirmed values: "Casa
+// Marina", "Sunset Key", and Old Town as the combination of "Old Town-N of
+// Truman" + "Old Town-S of Truman" (verified live: excludes Sunset Key
+// entirely). The remaining values below (Truman Annex, Midtown East,
+// Midtown West, New Town, The Meadows) were found by testing the exact
+// neighborhood name against this same field and confirming a real,
+// non-zero, geographically plausible result (e.g. Truman Annex's returned
+// listings sit at ~24.55,-81.807 — the real Truman Annex peninsula).
+//
+const NEIGHBORHOOD_TO_KW_VALUES: Record<string, string[]> = {
+  "Casa Marina": ["Casa Marina"],
+  "Old Town": ["Old Town-N of Truman", "Old Town-S of Truman"],
+  "Sunset Key": ["Sunset Key"],
+  "Truman Annex": ["Truman Annex"],
+  "Midtown East": ["Midtown East"],
+  "Midtown West": ["Midtown West"],
+  "New Town": ["New Town"],
+  "The Meadows": ["The Meadows"],
 };
-const KEY_WEST_CITY_ID = "24130";
+
+// "Shark Key" and "Key Haven" have no known a_locationTaxLegalKwNeighborhood[]
+// value (plausible guesses — plain name, "... Estates", hyphenated forms —
+// all returned zero results), but IDX Broker Saved Links found in the
+// account's own /idx/linkshowcase directory cover both. Verified live
+// 2026-08-24:
+//   - Shark Key (/i/shark-key-property-listings): 5 results, all genuinely
+//     Shark Key addresses (Cannon Royal Drive, Sea Lore Lane), zero Sunset
+//     Key bleed-through.
+//   - Key Haven (/i/Key_Haven): 6 results.
+// Both accept the same query-string filters as the main results endpoint
+// appended directly to them (confirmed for Shark Key: appending lp=8000000
+// correctly dropped 5 results to 2) — so this uses a different base URL than
+// IDX_BASE_URL but the same filter params; buildIdxSearchUrl below picks
+// whichever base URL applies.
+//
+// NOTE: most of the other links in /idx/linkshowcase are NOT reliable for
+// this purpose — checked 2026-08-24 and the ones for Sunset Key, Midtown
+// East, Midtown West, New Town, and The Meadows all silently return the
+// entire ~500-listing unfiltered board (IDX-totalResults-500) rather than a
+// real filtered result, and the "old-town-key-west-listings" one is a
+// narrower/stale saved search, not the true neighborhood boundary. Do not
+// swap any of NEIGHBORHOOD_TO_KW_VALUES over to a linkshowcase link without
+// verifying it the same way (check the result count isn't 500, and spot
+// check individual listing addresses/coordinates are actually in that
+// neighborhood).
+const NEIGHBORHOOD_TO_SAVED_LINK: Record<string, string> = {
+  "Shark Key": "https://search.royalpalmsrealty.com/i/shark-key-property-listings",
+  "Key Haven": "https://search.royalpalmsrealty.com/i/Key_Haven",
+};
+
+export type NeighborhoodFilterStatus =
+  | { available: true; mode: "kwValues"; kwValues: string[] }
+  | { available: true; mode: "savedLink"; baseUrl: string }
+  | { available: false };
+
+export function getNeighborhoodFilterStatus(neighborhoodName: string): NeighborhoodFilterStatus {
+  const savedLink = NEIGHBORHOOD_TO_SAVED_LINK[neighborhoodName];
+  if (savedLink) return { available: true, mode: "savedLink", baseUrl: savedLink };
+  const kwValues = NEIGHBORHOOD_TO_KW_VALUES[neighborhoodName];
+  if (!kwValues) return { available: false };
+  return { available: true, mode: "kwValues", kwValues };
+}
 
 export type IdxSearchFilters = {
+  // Only ever pass a neighborhood here once the caller has already checked
+  // getNeighborhoodFilterStatus(...).available — this function does not
+  // fall back to an unfiltered/citywide search if it can't resolve one.
   neighborhood?: string | null;
   minPrice?: number | null;
   maxPrice?: number | null;
@@ -60,21 +114,28 @@ export function buildIdxSearchUrl(filters: IdxSearchFilters): string {
   if (filters.waterfront) params.set("a_waterfrontYN", "Y");
   if (filters.sort === "newest") params.set("srt", "newest");
 
-  const cityId = filters.neighborhood
-    ? NEIGHBORHOOD_TO_CITY_ID[filters.neighborhood] ?? KEY_WEST_CITY_ID
-    : undefined;
-  if (cityId) params.set("city[]", cityId);
+  // No fallback: if the neighborhood doesn't resolve to a real KW
+  // Neighborhood value or saved link, no geography filter is applied at all
+  // rather than silently substituting all of Key West. Callers must check
+  // getNeighborhoodFilterStatus first and skip fetching entirely when
+  // unavailable — see the neighborhood pages.
+  const status = filters.neighborhood ? getNeighborhoodFilterStatus(filters.neighborhood) : null;
+  let baseUrl: string = IDX_BASE_URL;
+  if (status?.available) {
+    if (status.mode === "savedLink") {
+      // Shark Key (and any future saved-link-only neighborhood): a
+      // pre-isolated IDX Broker Saved Link stands in for both the base URL
+      // and the idxID/pt params, but still takes the same lp/hp/bd/etc.
+      // params appended above — confirmed live (see NEIGHBORHOOD_TO_SAVED_LINK).
+      baseUrl = status.baseUrl;
+      params.delete("idxID");
+      params.delete("pt");
+    } else {
+      for (const value of status.kwValues) {
+        params.append("a_locationTaxLegalKwNeighborhood[]", value);
+      }
+    }
+  }
 
-  return `${IDX_BASE_URL}?${params.toString()}`;
-}
-
-export function getNeighborhoodCityId(neighborhoodName: string): string {
-  return NEIGHBORHOOD_TO_CITY_ID[neighborhoodName] ?? KEY_WEST_CITY_ID;
-}
-
-// True when the requested neighborhood had to be broadened to all of Key
-// West because IDX doesn't expose that level of geographic granularity —
-// used to show an honest note instead of silently over-promising precision.
-export function neighborhoodWasBroadened(neighborhood?: string | null): boolean {
-  return Boolean(neighborhood) && !NEIGHBORHOOD_TO_CITY_ID[neighborhood!];
+  return `${baseUrl}?${params.toString()}`;
 }

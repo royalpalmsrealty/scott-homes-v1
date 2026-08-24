@@ -12,6 +12,7 @@ export function SearchFilterForm({
   initialCondo,
   initialWaterfront,
   neighborhoodOptions,
+  compact = false,
 }: {
   initialQuery: string;
   initialNeighborhood: string | null;
@@ -21,6 +22,10 @@ export function SearchFilterForm({
   initialCondo: boolean;
   initialWaterfront: boolean;
   neighborhoodOptions: string[];
+  /** Drops the card's own padding/shadow/accent bar — for when it's already
+   * sitting inside another card (e.g. floating over the search page's map
+   * hero), so the two don't double up. */
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
@@ -51,13 +56,19 @@ export function SearchFilterForm({
         e.preventDefault();
         runSearch();
       }}
-      className="relative overflow-hidden rounded-3xl bg-white p-6 shadow-[0_30px_60px_-25px_rgba(15,40,38,0.35)] sm:p-8"
+      className={
+        compact
+          ? "relative"
+          : "relative overflow-hidden rounded-3xl bg-white p-6 shadow-[0_30px_60px_-25px_rgba(15,40,38,0.35)] sm:p-8"
+      }
     >
-      <span
-        className="absolute inset-x-0 top-0 h-[3px]"
-        aria-hidden="true"
-        style={{ background: "linear-gradient(90deg, var(--teal) 0%, var(--gold) 100%)" }}
-      />
+      {!compact && (
+        <span
+          className="absolute inset-x-0 top-0 h-[3px]"
+          aria-hidden="true"
+          style={{ background: "linear-gradient(90deg, var(--teal) 0%, var(--gold) 100%)" }}
+        />
+      )}
 
       <div className="flex items-center gap-3 rounded-full border border-line bg-paper px-5 py-2 transition-colors focus-within:border-teal/50 focus-within:ring-2 focus-within:ring-teal/20">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0 text-muted">

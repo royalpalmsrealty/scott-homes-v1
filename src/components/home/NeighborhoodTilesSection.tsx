@@ -2,27 +2,25 @@ import Link from "next/link";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { NeighborhoodCard } from "@/components/neighborhoods/NeighborhoodCard";
 import { neighborhoods } from "@/lib/neighborhoods";
-import { getNeighborhoodCityId } from "@/lib/listings/idxSearch";
+import { getNeighborhoodFilterStatus } from "@/lib/listings/idxSearch";
 import { fetchIdxResultsCount } from "@/lib/listings/idxScrape";
 
 export async function NeighborhoodTilesSection() {
-  // Same 2-bucket real-count approach as /neighborhoods (see that page for
-  // why: IDX's geography only goes down to island level, so most of these
-  // tiles share one real count). Uses the authoritative IDX-resultsCount
-  // rather than counting scraped rows — see idxScrape.ts for why that
-  // distinction matters (scraped rows are capped by the page-size request).
-  const cityIds = [...new Set(neighborhoods.map((n) => getNeighborhoodCityId(n.name)))];
-  const countByCityId = new Map<string, { count: number; isMinimum: boolean }>();
+  // Only Shark Key can currently be filtered with real MLS precision (see
+  // idxSearch.ts) — every other tile shows no live count rather than the
+  // same island-wide number repeated across every tile, which is what this
+  // used to do before the client flagged it as misleading.
+  const countByName = new Map<string, { count: number; isMinimum: boolean }>();
   await Promise.all(
-    cityIds.map(async (cityId) => {
-      const sampleName = neighborhoods.find((n) => getNeighborhoodCityId(n.name) === cityId)!.name;
-      try {
-        const result = await fetchIdxResultsCount({ neighborhood: sampleName });
-        countByCityId.set(cityId, result);
-      } catch {
-        countByCityId.set(cityId, { count: 0, isMinimum: false });
-      }
-    })
+    neighborhoods
+      .filter((n) => getNeighborhoodFilterStatus(n.name).available)
+      .map(async (n) => {
+        try {
+          countByName.set(n.name, await fetchIdxResultsCount({ neighborhood: n.name }));
+        } catch {
+          countByName.set(n.name, { count: 0, isMinimum: false });
+        }
+      })
   );
 
   return (
@@ -41,17 +39,14 @@ export async function NeighborhoodTilesSection() {
           navigation path, not decoration, so mobile never drops to 1-up (R6). */}
       <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
         {neighborhoods.map((neighborhood, i) => {
-          const result = countByCityId.get(getNeighborhoodCityId(neighborhood.name)) ?? {
-            count: 0,
-            isMinimum: false,
-          };
+          const result = countByName.get(neighborhood.name);
           return (
             <NeighborhoodCard
               key={neighborhood.slug}
               neighborhood={neighborhood}
               priority={i < 2}
-              activeCount={result.count}
-              countLabel={result.isMinimum ? `${result.count}+ Active Listings` : undefined}
+              activeCount={result?.count}
+              countLabel={result?.isMinimum ? `${result.count}+ Active Listings` : undefined}
             />
           );
         })}

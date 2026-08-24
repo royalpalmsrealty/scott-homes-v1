@@ -3,7 +3,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { NeighborhoodCard } from "@/components/neighborhoods/NeighborhoodCard";
 import { NeighborhoodFilterChips } from "@/components/neighborhoods/NeighborhoodFilterChips";
 import { neighborhoods } from "@/lib/neighborhoods";
-import { getNeighborhoodCityId } from "@/lib/listings/idxSearch";
+import { getNeighborhoodFilterStatus } from "@/lib/listings/idxSearch";
 import { fetchIdxResultsCount } from "@/lib/listings/idxScrape";
 
 export const dynamic = "force-dynamic"; // counts are a live MLS lookup, not static content
@@ -22,24 +22,21 @@ export default async function NeighborhoodsPage({
   const { type, feature } = await searchParams;
   const filters = { condo: type === "condo", waterfront: feature === "waterfront" };
 
-  // Only 2 distinct real geographic buckets exist across all 10 neighborhood
-  // tiles (see idxSearch.ts) — Shark Key, and everything else broadened to
-  // Key West Island — so this is 2 live fetches total, not 10.
-  const cityIds = [...new Set(neighborhoods.map((n) => getNeighborhoodCityId(n.name)))];
-  const countByCityId = new Map<string, { count: number; isMinimum: boolean }>();
+  // Only Shark Key can currently be filtered with real MLS precision (see
+  // idxSearch.ts) — every other neighborhood shows no live count rather
+  // than a shared island-wide number, which is what the client flagged as
+  // misleading (it looked neighborhood-specific but wasn't).
+  const countByName = new Map<string, { count: number; isMinimum: boolean }>();
   await Promise.all(
-    cityIds.map(async (cityId) => {
-      try {
-        // fetchIdxResultsCount doesn't take a raw cityId, so scope via the
-        // neighborhood name that maps to it instead (any one will do — the
-        // URL builder only cares about the resolved cityId, not the label).
-        const sampleName = neighborhoods.find((n) => getNeighborhoodCityId(n.name) === cityId)!.name;
-        const result = await fetchIdxResultsCount({ ...filters, neighborhood: sampleName });
-        countByCityId.set(cityId, result);
-      } catch {
-        countByCityId.set(cityId, { count: 0, isMinimum: false });
-      }
-    })
+    neighborhoods
+      .filter((n) => getNeighborhoodFilterStatus(n.name).available)
+      .map(async (n) => {
+        try {
+          countByName.set(n.name, await fetchIdxResultsCount({ ...filters, neighborhood: n.name }));
+        } catch {
+          countByName.set(n.name, { count: 0, isMinimum: false });
+        }
+      })
   );
 
   const queryString = new URLSearchParams({
@@ -78,15 +75,15 @@ export default async function NeighborhoodsPage({
           <NeighborhoodFilterChips />
         </div>
         <p className="mt-2 font-sans text-xs text-muted">
-          Note: IDX&rsquo;s MLS search can only narrow geography to island level, not Key
-          West&rsquo;s individual neighborhoods (Shark Key is the one exception, being its own
-          island) — so most tiles below share the same island-wide count for now.
+          Note: IDX&rsquo;s public MLS search can only narrow geography to island level, not Key
+          West&rsquo;s individual neighborhoods — Shark Key is the one exception, being its own
+          island. Live counts below only show for neighborhoods IDX can filter precisely; we
+          don&rsquo;t show a count where it can&rsquo;t.
         </p>
 
         <div className="mt-10 grid gap-x-10 gap-y-16 sm:grid-cols-2">
           {neighborhoods.map((neighborhood, i) => {
-            const cityId = getNeighborhoodCityId(neighborhood.name);
-            const result = countByCityId.get(cityId) ?? { count: 0, isMinimum: false };
+            const result = countByName.get(neighborhood.name);
             const href = queryString
               ? `/neighborhoods/${neighborhood.slug}?${queryString}`
               : `/neighborhoods/${neighborhood.slug}`;
@@ -97,8 +94,8 @@ export default async function NeighborhoodsPage({
                   neighborhood={neighborhood}
                   aspectClassName="aspect-[4/5] sm:aspect-[4/3]"
                   priority={i < 2}
-                  activeCount={result.count}
-                  countLabel={result.isMinimum ? `${result.count}+ Active Listings` : undefined}
+                  activeCount={result?.count}
+                  countLabel={result?.isMinimum ? `${result.count}+ Active Listings` : undefined}
                   href={href}
                 />
                 <p className="mt-4 font-sans text-sm text-body">{neighborhood.overview[0]}</p>

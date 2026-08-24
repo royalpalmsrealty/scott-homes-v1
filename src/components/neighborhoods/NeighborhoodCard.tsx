@@ -16,7 +16,9 @@ export function NeighborhoodCard({
   // Real live-MLS count for this neighborhood (given the current filter
   // chips, if any) — passed in by the page rather than computed here, since
   // it now requires a real IDX fetch instead of a local dummy-data filter.
-  activeCount: number;
+  // Undefined (not 0) when IDX can't filter to this neighborhood precisely —
+  // showing "0" or a shared island-wide number would both be misleading.
+  activeCount?: number;
   // Override display text for when activeCount is a floor, not an exact
   // number (IDX caps its own reported total at 500 for very broad searches).
   countLabel?: string;
@@ -33,6 +35,7 @@ export function NeighborhoodCard({
         name={neighborhood.name}
         image={neighborhood.image}
         imageAlt={neighborhood.imageAlt}
+        imageIsGeneric={neighborhood.imageIsGeneric}
         priority={priority}
         className={`${aspectClassName} transition-transform duration-[400ms] group-hover:scale-[1.06] motion-reduce:transition-none motion-reduce:group-hover:scale-100`}
       />
@@ -61,16 +64,18 @@ export function NeighborhoodCard({
         <p className="font-display text-xl text-white sm:text-2xl">{neighborhood.name}</p>
         <span
           className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-sans text-xs font-medium backdrop-blur-md ${
-            activeCount > 0 ? "bg-teal/25 text-white" : "bg-white/15 text-white/80"
+            activeCount && activeCount > 0 ? "bg-teal/25 text-white" : "bg-white/15 text-white/80"
           }`}
         >
           <span
-            className={`h-1.5 w-1.5 rounded-full ${activeCount > 0 ? "bg-teal" : "bg-white/50"}`}
+            className={`h-1.5 w-1.5 rounded-full ${activeCount && activeCount > 0 ? "bg-teal" : "bg-white/50"}`}
             aria-hidden="true"
           />
-          {activeCount > 0
-            ? countLabel ?? `${activeCount} Active Listing${activeCount > 1 ? "s" : ""}`
-            : "No Active Listings"}
+          {activeCount === undefined
+            ? "Explore Neighborhood"
+            : activeCount > 0
+              ? countLabel ?? `${activeCount} Active Listing${activeCount > 1 ? "s" : ""}`
+              : "No Active Listings"}
         </span>
       </div>
     </Link>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { neighborhoodWasBroadened } from "@/lib/listings/idxSearch";
 import type { ScrapedListing } from "@/lib/listings/idxScrape";
 import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
 import type { AiSearchFilters } from "@/lib/schemas/aiSearchFilters";
@@ -23,8 +22,7 @@ export function AISearchResults({
   const [listings, setListings] = useState<ScrapedListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const broadened = neighborhoodWasBroadened(filters.neighborhood);
+  const [neighborhoodUnavailable, setNeighborhoodUnavailable] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -35,9 +33,15 @@ export function AISearchResults({
 
     setLoading(true);
     setError(null);
+    setNeighborhoodUnavailable(false);
     fetch(`/api/listings/search?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => {
+        if (data.neighborhoodUnavailable) {
+          setNeighborhoodUnavailable(true);
+          setListings([]);
+          return;
+        }
         if (data.error) throw new Error(data.error);
         setListings(data.listings ?? []);
       })
@@ -88,18 +92,21 @@ export function AISearchResults({
         </p>
       )}
 
-      {broadened && (
-        <p className="mt-3 max-w-xl font-sans text-xs text-muted">
-          Note: the MLS search below can&rsquo;t narrow to the specific &ldquo;{filters.neighborhood}
-          &rdquo; area — it&rsquo;s showing all of Key West Island instead.
-        </p>
-      )}
 
       {loading ? (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="h-[340px] animate-pulse rounded-2xl bg-line" />
           ))}
+        </div>
+      ) : neighborhoodUnavailable ? (
+        <div className="mt-10 rounded-2xl border border-line bg-paper p-8 text-center">
+          <p className="font-sans text-base text-body">
+            Live MLS search can&rsquo;t currently be narrowed to &ldquo;{filters.neighborhood}
+            &rdquo; specifically — IDX Broker&rsquo;s public search for this account doesn&rsquo;t
+            expose that level of neighborhood detail, so we&rsquo;re not showing unrelated Key West
+            listings here instead.
+          </p>
         </div>
       ) : error ? (
         <p className="mt-10 font-sans text-sm text-gold-deep">{error}</p>

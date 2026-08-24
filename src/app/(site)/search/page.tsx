@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
 import { SearchFilterForm } from "@/components/search/SearchFilterForm";
+import { MapView } from "@/components/listings/MapView";
+import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
 import { parseSearchQuery } from "@/lib/ai/searchParser";
 import { fetchIdxListings, fetchIdxResultsCount } from "@/lib/listings/idxScrape";
-import { neighborhoodWasBroadened } from "@/lib/listings/idxSearch";
+import { getNeighborhoodFilterStatus } from "@/lib/listings/idxSearch";
 import { neighborhoods } from "@/lib/neighborhoods";
 
 export const dynamic = "force-dynamic"; // always a live MLS lookup
@@ -61,7 +62,12 @@ export default async function SearchPage({
     condo: params.type === "condo",
     waterfront: params.feature === "waterfront",
   };
-  const broadened = neighborhoodWasBroadened(neighborhood);
+  const neighborhoodStatus = neighborhood ? getNeighborhoodFilterStatus(neighborhood) : null;
+  // Client-reported bug fix (2026-08-22): if a neighborhood was requested but
+  // IDX can't filter to it precisely, show an error instead of quietly
+  // running the search without that filter (which used to return the whole
+  // Key West board mislabeled as neighborhood-specific results).
+  const neighborhoodUnavailable = Boolean(neighborhood) && !neighborhoodStatus?.available;
 
   // So a listing opened from these results can send "Back" to this exact
   // search — same query, same filters — instead of a blank /search.
@@ -84,7 +90,7 @@ export default async function SearchPage({
     q || filters.neighborhood || filters.minPrice || filters.maxPrice || filters.minBeds || filters.condo || filters.waterfront
   );
 
-  const [listings, resultsCount] = hasAnyFilter
+  const [listings, resultsCount] = hasAnyFilter && !neighborhoodUnavailable
     ? await Promise.all([
         fetchIdxListings(filters, 24).catch(() => []),
         fetchIdxResultsCount(filters).catch(() => ({ count: 0, isMinimum: false })),
@@ -93,48 +99,61 @@ export default async function SearchPage({
 
   return (
     <>
-      <section className="relative flex min-h-[280px] items-center overflow-hidden bg-ink sm:min-h-[320px]">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: "url(/images/hero-poster.jpg)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute inset-0"
-          style={{ background: "linear-gradient(160deg, rgba(0,0,0,0.75) 20%, rgba(15,110,107,0.75) 100%)" }}
-          aria-hidden="true"
-        />
-        <div className="relative mx-auto w-full max-w-[1280px] px-4 pb-24 pt-16 sm:px-6 sm:pb-28 lg:px-8">
-          <p className="font-sans text-xs font-semibold uppercase tracking-[0.18em] text-gold">Key West MLS</p>
-          <h1 className="mt-3 font-display text-4xl text-white sm:text-5xl">Search Listings</h1>
-          <p className="mt-4 max-w-xl font-sans text-base text-white/80">
-            Search in your own words, then narrow with the filters below — every result pulls
-            live from the Florida Keys MLS.
-          </p>
+      {/* The map fills the whole first screen instead of a static photo —
+          the filter bar floats over its top edge, so both are visible at
+          once with zero scrolling. Scrolling only ever gets you to the
+          results grid below. */}
+      <section className="relative h-[85vh] min-h-[560px] w-full">
+        {/* isolate traps Leaflet's own internal panes (it uses z-index up to
+            700 for markers/popups) inside this box, so they can never climb
+            above the filter card floating on top of it. */}
+        <div className="absolute inset-0 isolate">
+          <MapView listings={neighborhoodUnavailable ? [] : listings} />
+        </div>
+
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-[5] h-24 bg-gradient-to-b from-ink/70 to-transparent" />
+
+        <div className="absolute inset-x-0 top-6 z-10 mx-auto w-full max-w-[900px] px-4 sm:px-6">
+          <div className="relative overflow-hidden rounded-3xl bg-white/95 p-5 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.5)] backdrop-blur-md sm:p-7">
+            <span
+              className="absolute inset-x-0 top-0 h-[3px]"
+              aria-hidden="true"
+              style={{ background: "linear-gradient(90deg, var(--teal) 0%, var(--gold) 100%)" }}
+            />
+            <p className="font-sans text-xs font-semibold uppercase tracking-[0.18em] text-gold-deep">Key West MLS</p>
+            <h1 className="mt-1 font-display text-2xl text-ink sm:text-3xl">Search Listings</h1>
+
+            <div className="mt-4">
+              <SearchFilterForm
+                initialQuery={q}
+                initialNeighborhood={neighborhood}
+                initialMinPrice={filters.minPrice}
+                initialMaxPrice={filters.maxPrice}
+                initialMinBeds={filters.minBeds}
+                initialCondo={filters.condo}
+                initialWaterfront={filters.waterfront}
+                neighborhoodOptions={neighborhoods.map((n) => n.name)}
+                compact
+              />
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1280px] px-4 pb-14 sm:px-6 sm:pb-24 lg:px-8">
-        <div className="-mt-16 sm:-mt-20">
-          <SearchFilterForm
-            initialQuery={q}
-            initialNeighborhood={neighborhood}
-            initialMinPrice={filters.minPrice}
-            initialMaxPrice={filters.maxPrice}
-            initialMinBeds={filters.minBeds}
-            initialCondo={filters.condo}
-            initialWaterfront={filters.waterfront}
-            neighborhoodOptions={neighborhoods.map((n) => n.name)}
-          />
-        </div>
-
-        {hasAnyFilter ? (
+      <section className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+        {neighborhoodUnavailable ? (
+          <div className="rounded-3xl border border-line bg-paper p-10 text-center">
+            <p className="font-sans text-base text-body">
+              Live MLS search can&rsquo;t currently be narrowed to &ldquo;{neighborhood}&rdquo;
+              specifically — IDX Broker&rsquo;s public search for this account doesn&rsquo;t expose
+              that level of neighborhood detail, so we&rsquo;re not showing unrelated Key West
+              listings here instead. Try a different neighborhood, or clear it to search all of
+              Key West.
+            </p>
+          </div>
+        ) : hasAnyFilter ? (
           <>
-            <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <p className="inline-flex items-center gap-2 font-sans text-sm font-medium text-ink">
                 <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
                 {resultsCount.isMinimum
@@ -150,22 +169,10 @@ export default async function SearchPage({
               </p>
             )}
 
-            {broadened && (
-              <p className="mt-3 max-w-xl font-sans text-xs text-muted">
-                Note: the MLS search can&rsquo;t narrow to the specific &ldquo;{neighborhood}&rdquo;
-                area — these results cover all of Key West Island instead.
-              </p>
-            )}
-
             {listings.length > 0 ? (
               <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {listings.map((listing) => (
-                  <ScrapedListingCard
-                    key={listing.listingId}
-                    listing={listing}
-                    backHref={backHref}
-                    backLabel="Back to Search"
-                  />
+                  <ScrapedListingCard key={listing.listingId} listing={listing} backHref={backHref} backLabel="Back to Search" />
                 ))}
               </div>
             ) : (
@@ -181,11 +188,9 @@ export default async function SearchPage({
             </p>
           </>
         ) : (
-          <div className="mt-10 rounded-3xl border border-line bg-paper p-10 text-center">
-            <p className="font-sans text-base text-body">
-              Describe what you&rsquo;re looking for, or set a filter above, then hit Search.
-            </p>
-          </div>
+          <p className="text-center font-sans text-sm text-muted">
+            Describe what you&rsquo;re looking for, or set a filter above, then hit Search.
+          </p>
         )}
       </section>
     </>
