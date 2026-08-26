@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { buildIdxSearchUrl, type IdxSearchFilters } from "./idxSearch";
+import { isIdxApiConfigured, fetchFeaturedListingsViaApi } from "./idxApi";
 
 // Client-reported bug fix (2026-08-26): listings would intermittently vanish
 // on refresh/page-change with no visible error. Root-caused live (via Vercel
@@ -340,9 +341,22 @@ export async function fetchSoldListings(perPage = 24): Promise<ScrapedListing[]>
 const FEATURED_URL = "https://search.royalpalmsrealty.com/idx/featured";
 
 // Scott's own currently-active Featured listings (tied to his Agent/Featured
-// IDs on the account) — a real, public IDX Broker page, confirmed live
-// (data-propCat="featured" on each result cell).
+// IDs on the account). Prefers the real, authenticated IDX Broker API
+// (idxApi.ts) when a key is configured — it's the one page this data source
+// actually covers (see idxApi.ts's own comment on why it can't cover
+// anything else) — and falls back to scraping IDX Broker's public "Featured"
+// page (confirmed live: data-propCat="featured" on each result cell) if the
+// API isn't configured, or if it errors for any reason (e.g. a bad/expired
+// key), so a misconfigured API key can't take this page down.
 export async function fetchFeaturedListings(perPage = 24): Promise<ScrapedListing[]> {
+  if (isIdxApiConfigured()) {
+    try {
+      return await fetchFeaturedListingsViaApi(perPage);
+    } catch (err) {
+      console.error("IDX Broker API featured-listings fetch failed, falling back to scraping", err);
+    }
+  }
+
   const url = new URL(FEATURED_URL);
   url.searchParams.set("per", String(perPage));
 
