@@ -201,14 +201,16 @@ export default async function SearchPage({
           </div>
         ) : hasAnyFilter ? (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <p className="inline-flex items-center gap-2 font-sans text-sm font-medium text-ink">
-                <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
-                {resultsCount.isMinimum
-                  ? `${resultsCount.count}+ live results`
-                  : `${resultsCount.count} live result${resultsCount.count === 1 ? "" : "s"}`}
-              </p>
-            </div>
+            {!fetchError && (
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <p className="inline-flex items-center gap-2 font-sans text-sm font-medium text-ink">
+                  <span className="h-1.5 w-1.5 rounded-full bg-teal" aria-hidden="true" />
+                  {resultsCount.isMinimum
+                    ? `${resultsCount.count}+ live results`
+                    : `${resultsCount.count} live result${resultsCount.count === 1 ? "" : "s"}`}
+                </p>
+              </div>
+            )}
 
             {usedFallback && (
               <p className="mt-2 max-w-xl font-sans text-sm text-gold-deep">

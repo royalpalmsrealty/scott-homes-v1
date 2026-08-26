@@ -169,7 +169,7 @@ export default async function NeighborhoodPage({
               heading={`Homes for Sale in ${neighborhood.name}`}
               as="h2"
             />
-            {filterStatus.available && (
+            {filterStatus.available && !fetchError && (
               <p className="font-sans text-sm text-muted">
                 {resultsCount.isMinimum
                   ? `${resultsCount.count}+ live results`
