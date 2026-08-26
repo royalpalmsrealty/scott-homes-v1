@@ -47,7 +47,24 @@ async function fetchIdxPage(url: string, timeoutMs = 12000): Promise<Response> {
 const STALE_FALLBACK_MS = 20 * 60 * 1000;
 const lastGoodHtml = new Map<string, { html: string; savedAt: number }>();
 
+// Client-reported concern (2026-08-26): every page load was hitting IDX
+// Broker completely fresh, every time — real estate inventory doesn't
+// change minute to minute, so that's more request volume than this needs,
+// and higher request volume is exactly what makes their bot protection more
+// likely to trigger in the first place. Serving an already-successful
+// response for the same query within this window, with no network call at
+// all, cuts that volume down without ever risking stale/wrong data for more
+// than a few minutes. This only ever serves a response that passed a real
+// res.ok check — never a failed/blocked one — so it can't reintroduce the
+// original "shows a false empty result" bug.
+const FRESH_CACHE_MS = 5 * 60 * 1000;
+
 async function fetchIdxHtml(url: string): Promise<string> {
+  const cached = lastGoodHtml.get(url);
+  if (cached && Date.now() - cached.savedAt < FRESH_CACHE_MS) {
+    return cached.html;
+  }
+
   try {
     const res = await fetchIdxPage(url);
     if (!res.ok) throw new Error(`IDX Broker responded ${res.status} for ${url}`);
@@ -55,7 +72,6 @@ async function fetchIdxHtml(url: string): Promise<string> {
     lastGoodHtml.set(url, { html, savedAt: Date.now() });
     return html;
   } catch (err) {
-    const cached = lastGoodHtml.get(url);
     if (cached && Date.now() - cached.savedAt < STALE_FALLBACK_MS) {
       console.error(`IDX Broker fetch failed, serving ${Math.round((Date.now() - cached.savedAt) / 1000)}s-old fallback for ${url}`, err);
       return cached.html;
