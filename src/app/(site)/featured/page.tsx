@@ -12,7 +12,14 @@ export const metadata: Metadata = {
 };
 
 export default async function FeaturedPage() {
-  const listings = await fetchFeaturedListings(24).catch(() => []);
+  let listings: Awaited<ReturnType<typeof fetchFeaturedListings>> = [];
+  let fetchError = false;
+  try {
+    listings = await fetchFeaturedListings(24);
+  } catch (err) {
+    console.error("Featured page listings fetch failed", err);
+    fetchError = true;
+  }
 
   return (
     <section className="mx-auto max-w-[1280px] px-4 py-14 sm:px-6 sm:py-24 lg:px-8">
@@ -22,7 +29,13 @@ export default async function FeaturedPage() {
         MLS.
       </p>
 
-      {listings.length > 0 ? (
+      {fetchError ? (
+        <div className="mt-10 rounded-2xl border border-line bg-paper p-8 text-center">
+          <p className="font-sans text-base text-body">
+            We couldn&rsquo;t reach the live MLS feed just now — please refresh in a moment.
+          </p>
+        </div>
+      ) : listings.length > 0 ? (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
             <ScrapedListingCard

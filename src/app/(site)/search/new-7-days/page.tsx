@@ -11,7 +11,14 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic"; // always a live MLS lookup
 
 export default async function New7DaysPage() {
-  const listings = await fetchIdxListings({ sort: "newest" }, 24).catch(() => []);
+  let listings: Awaited<ReturnType<typeof fetchIdxListings>> = [];
+  let fetchError = false;
+  try {
+    listings = await fetchIdxListings({ sort: "newest" }, 24);
+  } catch (err) {
+    console.error("New-7-days page listings fetch failed", err);
+    fetchError = true;
+  }
 
   return (
     <QuickSearchResults
@@ -20,6 +27,7 @@ export default async function New7DaysPage() {
       listings={listings}
       backHref="/search/new-7-days"
       backLabel="Back to New Listings"
+      fetchError={fetchError}
     />
   );
 }

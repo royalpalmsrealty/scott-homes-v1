@@ -5,6 +5,7 @@ export const brand = {
   broker: {
     name: "Scott Forman",
     title: "Broker/Owner, Principal Broker",
+    license: "BK #3045796",
   },
   phone: {
     display: "305-923-9884",

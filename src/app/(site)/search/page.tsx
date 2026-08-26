@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { SearchFilterForm } from "@/components/search/SearchFilterForm";
 import { MapView } from "@/components/listings/MapView";
 import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
+import { ListingsPagination } from "@/components/listings/ListingsPagination";
 import { parseSearchQuery } from "@/lib/ai/searchParser";
-import { fetchIdxListings, fetchIdxResultsCount } from "@/lib/listings/idxScrape";
+import { fetchIdxListings, fetchIdxResultsCount, type ScrapedListing } from "@/lib/listings/idxScrape";
 import { getNeighborhoodFilterStatus } from "@/lib/listings/idxSearch";
 import { neighborhoods } from "@/lib/neighborhoods";
 
@@ -14,6 +15,17 @@ export const metadata: Metadata = {
   robots: { index: false }, // query-dependent page — not a canonical indexable URL
 };
 
+// Kept at IDX Broker's original page size, not their real ~100/page cap —
+// requesting per=100 was confirmed live (2026-08-26, via Vercel function
+// logs) to get a fast 403 from IDX Broker's own WAF specifically for
+// requests from Vercel's IPs, while the identical URL succeeds every time
+// from elsewhere. 24 is the size that's been reliable in practice. See the
+// "Showing the first N" note below for what covers neighborhoods over 24 —
+// getting a real, WAF-safe per-page ceiling raised will need IDX Broker's
+// side (worth Scott asking their support for an allowlist), not something
+// fixable from our code alone.
+const PER_PAGE = 24;
+
 type SearchPageParams = {
   q?: string;
   neighborhood?: string;
@@ -22,6 +34,7 @@ type SearchPageParams = {
   minBeds?: string;
   type?: string;
   feature?: string;
+  page?: string;
 };
 
 export default async function SearchPage({
@@ -90,12 +103,47 @@ export default async function SearchPage({
     q || filters.neighborhood || filters.minPrice || filters.maxPrice || filters.minBeds || filters.condo || filters.waterfront
   );
 
-  const [listings, resultsCount] = hasAnyFilter && !neighborhoodUnavailable
-    ? await Promise.all([
-        fetchIdxListings(filters, 24).catch(() => []),
-        fetchIdxResultsCount(filters).catch(() => ({ count: 0, isMinimum: false })),
-      ])
-    : [[] as Awaited<ReturnType<typeof fetchIdxListings>>, { count: 0, isMinimum: false }];
+  // IDX Broker's own `start` pagination offset silently breaks (returns 0
+  // results, not an error) whenever it's combined with any of their `[]`
+  // array-style filter params — confirmed live 2026-08-26 against both
+  // a_locationTaxLegalKwNeighborhood[] and a_propSubType[] (start=1 fine,
+  // start=12+ returns 0 every time). So real Prev/Next paging is only safe
+  // when neither a neighborhood nor a condo filter is active — otherwise we
+  // rely on PER_PAGE alone (100, IDX's own ceiling) to fit everything on one
+  // page, which every real neighborhood already does.
+  const paginationSafe = !filters.neighborhood && !filters.condo;
+  const page = paginationSafe ? Math.max(1, parseInt(params.page ?? "1", 10) || 1) : 1;
+  const start = (page - 1) * PER_PAGE;
+
+  // Client-reported bug fix (2026-08-26): a transient IDX Broker fetch
+  // failure used to render identically to "genuinely zero results" (via
+  // .catch(() => [])) — now a real failure shows its own honest state
+  // instead of silently claiming there's nothing to see.
+  let listings: ScrapedListing[] = [];
+  let resultsCount = { count: 0, isMinimum: false };
+  let fetchError = false;
+  if (hasAnyFilter && !neighborhoodUnavailable) {
+    try {
+      [listings, resultsCount] = await Promise.all([
+        fetchIdxListings(filters, PER_PAGE, start),
+        fetchIdxResultsCount(filters),
+      ]);
+    } catch (err) {
+      console.error("Search page listings fetch failed", err);
+      fetchError = true;
+    }
+  }
+
+  const totalPages = Math.max(1, Math.ceil(resultsCount.count / PER_PAGE));
+  const truncatedUnsafely = !paginationSafe && resultsCount.count > PER_PAGE;
+  const paginationParams = new URLSearchParams();
+  if (params.q) paginationParams.set("q", params.q);
+  if (params.neighborhood) paginationParams.set("neighborhood", params.neighborhood);
+  if (params.minPrice) paginationParams.set("minPrice", params.minPrice);
+  if (params.maxPrice) paginationParams.set("maxPrice", params.maxPrice);
+  if (params.minBeds) paginationParams.set("minBeds", params.minBeds);
+  if (params.type) paginationParams.set("type", params.type);
+  if (params.feature) paginationParams.set("feature", params.feature);
 
   return (
     <>
@@ -169,12 +217,35 @@ export default async function SearchPage({
               </p>
             )}
 
-            {listings.length > 0 ? (
-              <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {listings.map((listing) => (
-                  <ScrapedListingCard key={listing.listingId} listing={listing} backHref={backHref} backLabel="Back to Search" />
-                ))}
+            {fetchError ? (
+              <div className="mt-6 rounded-3xl border border-line bg-paper p-10 text-center">
+                <p className="font-sans text-base text-body">
+                  We couldn&rsquo;t reach the live MLS feed just now — this is a temporary
+                  connection issue, not a real 0. Please refresh in a moment.
+                </p>
               </div>
+            ) : listings.length > 0 ? (
+              <>
+                {truncatedUnsafely && (
+                  <p className="mt-2 max-w-xl font-sans text-sm text-gold-deep">
+                    Showing the first {PER_PAGE} — add a price or bed filter to narrow it down
+                    further.
+                  </p>
+                )}
+                <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {listings.map((listing) => (
+                    <ScrapedListingCard key={listing.listingId} listing={listing} backHref={backHref} backLabel="Back to Search" />
+                  ))}
+                </div>
+                {paginationSafe && (
+                  <ListingsPagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    baseParams={Object.fromEntries(paginationParams)}
+                    basePath="/search"
+                  />
+                )}
+              </>
             ) : (
               <div className="mt-6 rounded-3xl border border-line bg-paper p-10 text-center">
                 <p className="font-sans text-base text-body">

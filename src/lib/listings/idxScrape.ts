@@ -1,6 +1,68 @@
 import * as cheerio from "cheerio";
 import { buildIdxSearchUrl, type IdxSearchFilters } from "./idxSearch";
 
+// Client-reported bug fix (2026-08-26): listings would intermittently vanish
+// on refresh/page-change with no visible error. Root-caused live (via Vercel
+// function logs) to IDX Broker's own WAF returning a 403 for some requests —
+// confirmed the exact same URL succeeds every time from a non-Vercel IP, so
+// this is IDX Broker rate/bot-limiting Vercel's outbound IPs specifically,
+// not a bug in our fetch logic. Not something fixable by changing what we
+// send — the two real mitigations are (1) retry the 403/429/5xx cases, since
+// they're transient, and (2) fall back to the last successful response for
+// that same query if every attempt fails, rather than showing a false "0
+// results." cache: "no-store" is still set so a *successful* request is
+// always fresh, never Next.js's own stale Data Cache.
+async function fetchIdxPage(url: string, timeoutMs = 12000): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      const transient = res.status === 403 || res.status === 429 || res.status >= 500;
+      if (res.ok || !transient) return res;
+      lastError = new Error(`IDX Broker responded ${res.status} for ${url}`);
+    } catch (err) {
+      clearTimeout(timer);
+      lastError = err;
+    }
+  }
+  console.error("IDX Broker fetch failed after retries:", lastError);
+  throw lastError instanceof Error ? lastError : new Error("IDX Broker fetch failed");
+}
+
+// Per-serverless-instance memory of the last successful HTML for a given
+// URL — not a real cache (nothing is ever served from here instead of a
+// fresh fetch), it's a fallback of last resort for when every live attempt
+// above fails, so a transient IDX Broker block shows slightly-stale real
+// data instead of a false "0 results" or a hard error. 20 minutes is long
+// enough to absorb a blocked-IP window but short enough that a buyer never
+// sees meaningfully outdated inventory.
+const STALE_FALLBACK_MS = 20 * 60 * 1000;
+const lastGoodHtml = new Map<string, { html: string; savedAt: number }>();
+
+async function fetchIdxHtml(url: string): Promise<string> {
+  try {
+    const res = await fetchIdxPage(url);
+    if (!res.ok) throw new Error(`IDX Broker responded ${res.status} for ${url}`);
+    const html = await res.text();
+    lastGoodHtml.set(url, { html, savedAt: Date.now() });
+    return html;
+  } catch (err) {
+    const cached = lastGoodHtml.get(url);
+    if (cached && Date.now() - cached.savedAt < STALE_FALLBACK_MS) {
+      console.error(`IDX Broker fetch failed, serving ${Math.round((Date.now() - cached.savedAt) / 1000)}s-old fallback for ${url}`, err);
+      return cached.html;
+    }
+    throw err;
+  }
+}
+
 // IDX Broker's raw API can't return general MLS search results on this
 // account's plan (see project notes) — but the hosted results page they
 // already serve for embedding contains the same data as structured HTML
@@ -86,8 +148,8 @@ export async function fetchListingDetail(listingId: string, addressSlug: string)
   const galleryUrl = `https://search.royalpalmsrealty.com/idx/photogallery/${mlsId}/${listingId}`;
 
   const [detailRes, galleryRes] = await Promise.all([
-    fetch(detailUrl, { headers: { "User-Agent": "Mozilla/5.0" } }),
-    fetch(galleryUrl, { headers: { "User-Agent": "Mozilla/5.0" } }).catch(() => null),
+    fetchIdxPage(detailUrl),
+    fetchIdxPage(galleryUrl).catch(() => null),
   ]);
   if (!detailRes.ok) return null;
 
@@ -190,10 +252,11 @@ export async function fetchIdxResultsCount(filters: IdxSearchFilters): Promise<I
   const url = new URL(buildIdxSearchUrl(filters));
   url.searchParams.set("per", "1");
 
-  const res = await fetch(url.toString(), { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!res.ok) return { count: 0, isMinimum: false };
-
-  const html = await res.text();
+  // Was silently returning {count: 0} on any non-200, indistinguishable from
+  // a genuine zero-result search — fixed 2026-08-26 to throw like every
+  // other fetch here, so callers can show a real "couldn't load" state
+  // instead of a false "no listings" one.
+  const html = await fetchIdxHtml(url.toString());
   const $ = cheerio.load(html);
   const countText = $(".IDX-resultsCount").first().text().trim();
   const count = parseInt(countText.replace(/[^0-9]/g, ""), 10) || 0;
@@ -247,15 +310,16 @@ function parseResultsCells($: cheerio.CheerioAPI): ScrapedListing[] {
   return listings;
 }
 
-export async function fetchIdxListings(filters: IdxSearchFilters, perPage = 24): Promise<ScrapedListing[]> {
+// `start` is IDX Broker's own pagination offset (confirmed live 2026-08-26:
+// ?start=24&per=24 returns the next 24 rows after ?start=0/omitted) — pass
+// (page - 1) * perPage from a caller that wants page 2+.
+export async function fetchIdxListings(filters: IdxSearchFilters, perPage = 24, start = 0): Promise<ScrapedListing[]> {
   const url = new URL(buildIdxSearchUrl(filters));
   url.searchParams.set("per", String(perPage));
+  if (start > 0) url.searchParams.set("start", String(start));
 
-  const res = await fetch(url.toString(), { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!res.ok) {
-    throw new Error(`IDX results fetch failed: ${res.status}`);
-  }
-  return parseResultsCells(cheerio.load(await res.text()));
+  const html = await fetchIdxHtml(url.toString());
+  return parseResultsCells(cheerio.load(html));
 }
 
 const SOLD_PENDING_URL = "https://search.royalpalmsrealty.com/idx/soldpending";
@@ -269,11 +333,8 @@ export async function fetchSoldListings(perPage = 24): Promise<ScrapedListing[]>
   const url = new URL(SOLD_PENDING_URL);
   url.searchParams.set("per", String(perPage));
 
-  const res = await fetch(url.toString(), { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!res.ok) {
-    throw new Error(`IDX sold/pending fetch failed: ${res.status}`);
-  }
-  return parseResultsCells(cheerio.load(await res.text()));
+  const html = await fetchIdxHtml(url.toString());
+  return parseResultsCells(cheerio.load(html));
 }
 
 const FEATURED_URL = "https://search.royalpalmsrealty.com/idx/featured";
@@ -285,9 +346,6 @@ export async function fetchFeaturedListings(perPage = 24): Promise<ScrapedListin
   const url = new URL(FEATURED_URL);
   url.searchParams.set("per", String(perPage));
 
-  const res = await fetch(url.toString(), { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!res.ok) {
-    throw new Error(`IDX featured fetch failed: ${res.status}`);
-  }
-  return parseResultsCells(cheerio.load(await res.text()));
+  const html = await fetchIdxHtml(url.toString());
+  return parseResultsCells(cheerio.load(html));
 }

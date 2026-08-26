@@ -212,7 +212,7 @@ export function Footer() {
             <ColumnHeading>{brand.broker.name}</ColumnHeading>
             <p className="mt-4 font-sans text-sm text-white">{brand.broker.title}</p>
             <p className="mt-2 font-sans text-xs text-white/80">
-              License #: BK #3045796
+              License #: {brand.broker.license}
             </p>
           </div>
         </div>

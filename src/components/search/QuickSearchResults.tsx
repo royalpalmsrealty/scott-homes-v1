@@ -9,19 +9,27 @@ export function QuickSearchResults({
   listings,
   backHref,
   backLabel,
+  fetchError,
 }: {
   heading: string;
   intro: string;
   listings: ScrapedListing[];
   backHref: string;
   backLabel: string;
+  fetchError?: boolean;
 }) {
   return (
     <section className="mx-auto max-w-[1280px] px-4 py-14 sm:px-6 sm:py-24 lg:px-8">
       <SectionHeading eyebrow="Key West Listings" heading={heading} as="h1" />
       <p className="mt-6 max-w-2xl font-sans text-base text-body">{intro}</p>
 
-      {listings.length > 0 ? (
+      {fetchError ? (
+        <div className="mt-10 border border-line bg-paper p-8 text-center">
+          <p className="font-sans text-base text-body">
+            We couldn&rsquo;t reach the live MLS feed just now — please refresh in a moment.
+          </p>
+        </div>
+      ) : listings.length > 0 ? (
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
             <ScrapedListingCard

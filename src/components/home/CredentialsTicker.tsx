@@ -3,13 +3,13 @@ import { brand } from "@/lib/brand";
 type Badge = { label: string; emphasis?: boolean; serif?: boolean };
 
 // Honest, non-fabricated badges only — no invented years-of-experience or
-// ranking claims. License number stays a placeholder until confirmed (§15).
+// ranking claims.
 const badges: Badge[] = [
   { label: brand.broker.title, emphasis: true },
   { label: "Key West, FL" },
   { label: "REALTOR®", serif: true },
   { label: "Equal Housing Opportunity", emphasis: true },
-  { label: "FL License #: TODO-CLIENT-ASSET" },
+  { label: `FL License #: ${brand.broker.license}` },
   { label: brand.brokerage, serif: true },
 ];
 

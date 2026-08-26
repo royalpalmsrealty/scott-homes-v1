@@ -8,9 +8,22 @@ import { NeighborhoodFilterChips } from "@/components/neighborhoods/Neighborhood
 import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
 import { getNeighborhood, getAdjacentNeighborhoods } from "@/lib/neighborhoods";
 import { getNeighborhoodFilterStatus } from "@/lib/listings/idxSearch";
-import { fetchIdxListings, fetchIdxResultsCount } from "@/lib/listings/idxScrape";
+import { fetchIdxListings, fetchIdxResultsCount, type ScrapedListing } from "@/lib/listings/idxScrape";
 
 export const dynamic = "force-dynamic"; // listings below are a live MLS lookup
+
+// Neighborhood pages always filter via a_locationTaxLegalKwNeighborhood[],
+// and IDX Broker's own pagination offset (`start`) silently returns 0
+// results (not an error) whenever it's combined with any of their `[]`
+// array-style filter params — confirmed live 2026-08-26. So this doesn't
+// attempt real Prev/Next paging. It also can't just raise `per` to cover
+// every neighborhood in one request: per=100 was confirmed (via Vercel
+// function logs) to get a fast 403 from IDX Broker's own WAF specifically
+// for Vercel-originated requests, while the identical URL succeeds every
+// time from elsewhere — so this stays at IDX's original page size, and the
+// "Showing the first N" note below covers whichever neighborhoods that
+// doesn't fully fit (Old Town and New Town, today).
+const PER_PAGE = 24;
 
 export async function generateMetadata({
   params,
@@ -54,12 +67,25 @@ export default async function NeighborhoodPage({
   // instead of returning unrelated properties.
   const filterStatus = getNeighborhoodFilterStatus(neighborhood.name);
   const filters = { neighborhood: neighborhood.name, condo, waterfront };
-  const [listings, resultsCount] = filterStatus.available
-    ? await Promise.all([
-        fetchIdxListings(filters, 24).catch(() => []),
-        fetchIdxResultsCount(filters).catch(() => ({ count: 0, isMinimum: false })),
-      ])
-    : [[] as Awaited<ReturnType<typeof fetchIdxListings>>, { count: 0, isMinimum: false }];
+
+  // Client-reported bug fix (2026-08-26): a transient IDX Broker fetch
+  // failure used to render identically to "genuinely zero active listings"
+  // — now a real failure gets its own honest state.
+  let listings: ScrapedListing[] = [];
+  let resultsCount = { count: 0, isMinimum: false };
+  let fetchError = false;
+  if (filterStatus.available) {
+    try {
+      [listings, resultsCount] = await Promise.all([
+        fetchIdxListings(filters, PER_PAGE),
+        fetchIdxResultsCount(filters),
+      ]);
+    } catch (err) {
+      console.error(`Neighborhood page listings fetch failed for ${neighborhood.name}`, err);
+      fetchError = true;
+    }
+  }
+  const truncated = resultsCount.count > PER_PAGE;
 
   const adjacent = getAdjacentNeighborhoods(slug);
   const hasSampleStats = neighborhood.medianPrice !== undefined;
@@ -174,17 +200,32 @@ export default async function NeighborhoodPage({
                 Search All Key West Listings
               </Link>
             </div>
-          ) : listings.length > 0 ? (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {listings.map((listing) => (
-                <ScrapedListingCard
-                  key={listing.listingId}
-                  listing={listing}
-                  backHref={backHref}
-                  backLabel={`Back to ${neighborhood.name}`}
-                />
-              ))}
+          ) : fetchError ? (
+            <div className="mt-10 rounded-2xl border border-line bg-white p-8 text-center">
+              <p className="font-sans text-base text-body">
+                We couldn&rsquo;t reach the live MLS feed just now — this is a temporary
+                connection issue, not a real 0. Please refresh in a moment.
+              </p>
             </div>
+          ) : listings.length > 0 ? (
+            <>
+              {truncated && (
+                <p className="mt-2 font-sans text-sm text-gold-deep">
+                  Showing the first {PER_PAGE} of {resultsCount.count} — add a price or bed filter
+                  above to narrow it down further.
+                </p>
+              )}
+              <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {listings.map((listing) => (
+                  <ScrapedListingCard
+                    key={listing.listingId}
+                    listing={listing}
+                    backHref={backHref}
+                    backLabel={`Back to ${neighborhood.name}`}
+                  />
+                ))}
+              </div>
+            </>
           ) : (
             <div className="mt-10 rounded-2xl border border-line bg-white p-8 text-center">
               <p className="font-sans text-base text-body">

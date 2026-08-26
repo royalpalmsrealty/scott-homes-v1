@@ -11,7 +11,14 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic"; // always a live MLS lookup
 
 export default async function New24HoursPage() {
-  const listings = await fetchIdxListings({ sort: "newest" }, 12).catch(() => []);
+  let listings: Awaited<ReturnType<typeof fetchIdxListings>> = [];
+  let fetchError = false;
+  try {
+    listings = await fetchIdxListings({ sort: "newest" }, 12);
+  } catch (err) {
+    console.error("New-24-hours page listings fetch failed", err);
+    fetchError = true;
+  }
 
   return (
     <QuickSearchResults
@@ -20,6 +27,7 @@ export default async function New24HoursPage() {
       listings={listings}
       backHref="/search/new-24-hours"
       backLabel="Back to New Listings"
+      fetchError={fetchError}
     />
   );
 }
