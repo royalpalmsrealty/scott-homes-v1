@@ -7,12 +7,23 @@ import { buildIdxSearchUrl, type IdxSearchFilters } from "./idxSearch";
 // confirmed the exact same URL succeeds every time from a non-Vercel IP, so
 // this is IDX Broker rate/bot-limiting Vercel's outbound IPs specifically,
 // not a bug in our fetch logic. Not something fixable by changing what we
-// send — the two real mitigations are (1) retry the 403/429/5xx cases, since
-// they're transient, and (2) fall back to the last successful response for
-// that same query if every attempt fails, rather than showing a false "0
-// results." cache: "no-store" is still set so a *successful* request is
-// always fresh, never Next.js's own stale Data Cache.
-async function fetchIdxPage(url: string, timeoutMs = 12000): Promise<Response> {
+// send — the real mitigation is retrying the 403/429/5xx cases, since
+// they're transient. `cacheSeconds` controls Next.js's own fetch Data
+// Cache: omit it (the default) for cache: "no-store" — always fresh, used
+// by fetchListingDetail, where a stale price would be a real problem — or
+// pass a number to use `next: { revalidate }` instead for callers like the
+// results-count check below, where serving a slightly-stale number is fine.
+//
+// IMPORTANT: this used to have a hand-rolled in-memory Map as the caching
+// layer instead of Next's own `revalidate`. That only works on a
+// long-running process (which is why it looked fine testing against a local
+// dev server) — Vercel's serverless functions are ephemeral, so a fresh
+// request can land on a brand-new instance with empty memory no matter how
+// long the cache duration is set to. Next's `revalidate` is backed by
+// Vercel's real Data Cache infrastructure, not per-instance memory, so it
+// actually persists across serverless invocations the way "cache this for
+// an hour" is supposed to.
+async function fetchIdxPage(url: string, cacheSeconds?: number, timeoutMs = 12000): Promise<Response> {
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
     const controller = new AbortController();
@@ -20,8 +31,8 @@ async function fetchIdxPage(url: string, timeoutMs = 12000): Promise<Response> {
     try {
       const res = await fetch(url, {
         headers: { "User-Agent": "Mozilla/5.0" },
-        cache: "no-store",
         signal: controller.signal,
+        ...(cacheSeconds ? { next: { revalidate: cacheSeconds } } : { cache: "no-store" as const }),
       });
       clearTimeout(timer);
       const transient = res.status === 403 || res.status === 429 || res.status >= 500;
@@ -36,52 +47,10 @@ async function fetchIdxPage(url: string, timeoutMs = 12000): Promise<Response> {
   throw lastError instanceof Error ? lastError : new Error("IDX Broker fetch failed");
 }
 
-// Per-serverless-instance memory of the last successful HTML for a given
-// URL — not a real cache (nothing is ever served from here instead of a
-// fresh fetch), it's a fallback of last resort for when every live attempt
-// above fails, so a transient IDX Broker block shows slightly-stale real
-// data instead of a false "0 results" or a hard error. Client-confirmed
-// (2026-08-29): listing counts barely move week to week, so 24 hours is a
-// safe window to keep serving last-known-good numbers through an extended
-// blocked window without ever showing meaningfully outdated inventory.
-const STALE_FALLBACK_MS = 24 * 60 * 60 * 1000;
-const lastGoodHtml = new Map<string, { html: string; savedAt: number }>();
-
-// Client-reported concern (2026-08-26): every page load was hitting IDX
-// Broker completely fresh, every time — real estate inventory doesn't
-// change minute to minute, so that's more request volume than this needs,
-// and higher request volume is exactly what makes their bot protection more
-// likely to trigger in the first place. Serving an already-successful
-// response for the same query within this window, with no network call at
-// all, cuts that volume down without ever risking stale/wrong data for more
-// than a few minutes. This only ever serves a response that passed a real
-// res.ok check — never a failed/blocked one — so it can't reintroduce the
-// original "shows a false empty result" bug. Widened from 5 minutes to 1
-// hour on 2026-08-29 per client request — the only thing left using this
-// path is the neighborhood tiles' counts, which change slowly enough that
-// checking hourly instead of every 5 minutes loses nothing noticeable while
-// cutting request volume by 12x.
-const FRESH_CACHE_MS = 60 * 60 * 1000;
-
-async function fetchIdxHtml(url: string): Promise<string> {
-  const cached = lastGoodHtml.get(url);
-  if (cached && Date.now() - cached.savedAt < FRESH_CACHE_MS) {
-    return cached.html;
-  }
-
-  try {
-    const res = await fetchIdxPage(url);
-    if (!res.ok) throw new Error(`IDX Broker responded ${res.status} for ${url}`);
-    const html = await res.text();
-    lastGoodHtml.set(url, { html, savedAt: Date.now() });
-    return html;
-  } catch (err) {
-    if (cached && Date.now() - cached.savedAt < STALE_FALLBACK_MS) {
-      console.error(`IDX Broker fetch failed, serving ${Math.round((Date.now() - cached.savedAt) / 1000)}s-old fallback for ${url}`, err);
-      return cached.html;
-    }
-    throw err;
-  }
+async function fetchIdxHtml(url: string, cacheSeconds?: number): Promise<string> {
+  const res = await fetchIdxPage(url, cacheSeconds);
+  if (!res.ok) throw new Error(`IDX Broker responded ${res.status} for ${url}`);
+  return res.text();
 }
 
 // Migration note (2026-08-26): general search/results/sold/details/featured
@@ -251,14 +220,19 @@ export type IdxResultsCount = { count: number; isMinimum: boolean };
 // request) — a single per=1 request just to read the total, not the full
 // listing data behind it. Still the category of request IDX Broker's
 // support team said isn't officially supported, but it's the smallest
-// possible ask (no listing data, just a number) and goes through the same
-// retry/cache-fallback machinery (fetchIdxHtml) as everything else here, so
-// a transient block degrades to "no count shown" rather than a hard error.
+// possible ask (no listing data, just a number). Cached for a real hour via
+// Next's Data Cache (COUNT_CACHE_SECONDS below) — genuinely persists across
+// Vercel's serverless instances, unlike the in-memory approach this used to
+// use — so a transient block only shows up as "no count" for whoever's
+// unlucky enough to hit the one request per hour that actually goes live;
+// everyone else gets the cached number with zero risk of hitting IDX
+// Broker at all.
+const COUNT_CACHE_SECONDS = 60 * 60; // 1 hour — client-confirmed counts barely move week to week
 export async function fetchIdxResultsCount(filters: IdxSearchFilters): Promise<IdxResultsCount> {
   const url = new URL(buildIdxSearchUrl(filters));
   url.searchParams.set("per", "1");
 
-  const html = await fetchIdxHtml(url.toString());
+  const html = await fetchIdxHtml(url.toString(), COUNT_CACHE_SECONDS);
   const $ = cheerio.load(html);
 
   // Two different templates, two different places the count lives — confirmed
