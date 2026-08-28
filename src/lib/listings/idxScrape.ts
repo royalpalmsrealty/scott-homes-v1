@@ -1,6 +1,5 @@
 import * as cheerio from "cheerio";
 import { buildIdxSearchUrl, type IdxSearchFilters } from "./idxSearch";
-import { isIdxApiConfigured, fetchFeaturedListingsViaApi } from "./idxApi";
 
 // Client-reported bug fix (2026-08-26): listings would intermittently vanish
 // on refresh/page-change with no visible error. Root-caused live (via Vercel
@@ -41,10 +40,11 @@ async function fetchIdxPage(url: string, timeoutMs = 12000): Promise<Response> {
 // URL — not a real cache (nothing is ever served from here instead of a
 // fresh fetch), it's a fallback of last resort for when every live attempt
 // above fails, so a transient IDX Broker block shows slightly-stale real
-// data instead of a false "0 results" or a hard error. 20 minutes is long
-// enough to absorb a blocked-IP window but short enough that a buyer never
-// sees meaningfully outdated inventory.
-const STALE_FALLBACK_MS = 20 * 60 * 1000;
+// data instead of a false "0 results" or a hard error. Client-confirmed
+// (2026-08-29): listing counts barely move week to week, so 24 hours is a
+// safe window to keep serving last-known-good numbers through an extended
+// blocked window without ever showing meaningfully outdated inventory.
+const STALE_FALLBACK_MS = 24 * 60 * 60 * 1000;
 const lastGoodHtml = new Map<string, { html: string; savedAt: number }>();
 
 // Client-reported concern (2026-08-26): every page load was hitting IDX
@@ -56,8 +56,12 @@ const lastGoodHtml = new Map<string, { html: string; savedAt: number }>();
 // all, cuts that volume down without ever risking stale/wrong data for more
 // than a few minutes. This only ever serves a response that passed a real
 // res.ok check — never a failed/blocked one — so it can't reintroduce the
-// original "shows a false empty result" bug.
-const FRESH_CACHE_MS = 5 * 60 * 1000;
+// original "shows a false empty result" bug. Widened from 5 minutes to 1
+// hour on 2026-08-29 per client request — the only thing left using this
+// path is the neighborhood tiles' counts, which change slowly enough that
+// checking hourly instead of every 5 minutes loses nothing noticeable while
+// cutting request volume by 12x.
+const FRESH_CACHE_MS = 60 * 60 * 1000;
 
 async function fetchIdxHtml(url: string): Promise<string> {
   const cached = lastGoodHtml.get(url);
@@ -80,40 +84,24 @@ async function fetchIdxHtml(url: string): Promise<string> {
   }
 }
 
-// Migration note (2026-08-26): general search/results/sold/details scraping
-// (fetchIdxListings, fetchIdxResultsCount, fetchSoldListings) was removed from
-// this file after IDX Broker's own support team confirmed in writing that
-// server-side scraping their public pages isn't a supported integration
-// method (and declined to allowlist this server's IP). Those pages are now
-// embedded directly via <iframe> (see src/components/listings/IdxEmbed.tsx
-// and buildIdxSearchUrl in ./idxSearch, which still builds the same URLs —
-// just for an iframe src now, not a server-side fetch). What's left here is
-// deliberately scoped to low-volume, per-listing usage: fetchListingDetail
-// (used only by the Make an Offer flow, once per offer attempt — not bulk
-// browsing) and fetchFeaturedListings (prefers the real authenticated API in
-// idxApi.ts, only falls back to scraping if that's unconfigured/erroring).
-export type ScrapedListing = {
-  listingId: string;
-  mlsId: string;
-  addressSlug: string;
-  address: string;
-  city: string;
-  price: number;
-  beds: number | null;
-  baths: number | null;
-  sqft: number | null;
-  photoUrl: string | null;
-  status: string;
-  description: string;
-  lat: number | null;
-  lng: number | null;
-};
+// Migration note (2026-08-26): general search/results/sold/details/featured
+// scraping was removed from this file after IDX Broker's own support team
+// confirmed in writing that server-side scraping their public pages isn't a
+// supported integration method (and declined to allowlist this server's
+// IP). Those pages are now embedded directly via <iframe> (see
+// src/components/listings/IdxEmbed.tsx and buildIdxSearchUrl in
+// ./idxSearch, which still builds the same URLs — just for an iframe src
+// now, not a server-side fetch). What's left here is deliberately scoped to
+// low-volume, per-listing/per-count usage: fetchListingDetail (used only by
+// the Make an Offer flow, once per offer attempt — not bulk browsing) and
+// fetchIdxResultsCount (the neighborhood tiles' live counts — a single
+// per=1 request, no listing data).
 
 function detailPath(mlsId: string, listingId: string, addressSlug: string) {
   return `/idx/details/listing/${mlsId}/${listingId}/${addressSlug}`;
 }
 
-export function buildOwnListingUrl(listing: Pick<ScrapedListing, "listingId" | "addressSlug">): string {
+export function buildOwnListingUrl(listing: { listingId: string; addressSlug: string }): string {
   return `/listings/${listing.listingId}-${listing.addressSlug}`;
 }
 
@@ -257,66 +245,6 @@ function parseNumber(text: string | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-// parseNumber strips "-" along with currency symbols/commas — fine for
-// prices/beds/baths (always positive) but wrong for longitude, which is
-// always negative here (Key West sits west of the prime meridian).
-function parseCoord(text: string | undefined): number | null {
-  if (!text) return null;
-  const n = Number(text);
-  return Number.isFinite(n) ? n : null;
-}
-
-function parseResultsCells($: cheerio.CheerioAPI): ScrapedListing[] {
-  const listings: ScrapedListing[] = [];
-
-  $(".IDX-resultsCell").each((_, el) => {
-    const cell = $(el);
-    const listingId = cell.attr("data-listingid");
-    const mlsId = cell.attr("data-idxid");
-    if (!listingId || !mlsId) return;
-
-    // The main Results/Sold pages wrap the details link in
-    // .IDX-resultsAddressLink, but the Featured page (confirmed live
-    // 2026-08-26) uses .IDX-resultsPhotoLink for the same href instead —
-    // different template, same underlying URL. Try both rather than assume
-    // one, since silently skipping every cell here is what a mismatch here
-    // actually looks like (a page full of real listings parsing to zero).
-    const addressLink = cell.find(".IDX-resultsAddressLink, .IDX-resultsPhotoLink").first();
-    const hrefMatch = addressLink.attr("href")?.match(/\/idx\/details\/listing\/[^/]+\/[^/]+\/([^/?#]+)/);
-    const addressSlug = hrefMatch?.[1];
-    if (!addressSlug) return;
-
-    const number = cell.find(".IDX-resultsAddressNumber").first().text().trim();
-    const street = cell.find(".IDX-resultsAddressName").first().text().trim();
-    const city = cell.find(".IDX-resultsAddressCity").first().text().trim();
-    const state = cell.find(".IDX-resultsAddressStateAbrv").first().text().trim();
-    const zip = cell.find(".IDX-resultsAddressZip").first().text().trim();
-
-    listings.push({
-      listingId,
-      mlsId,
-      addressSlug,
-      address: `${number} ${street}`.trim(),
-      city: `${city}, ${state} ${zip}`.trim(),
-      // On the sold/pending page this is the actual sold price, not a list
-      // price — confirmed live against the account's own admin listing
-      // (605503 / 41 Cannon Royal Drive: data-price="3700000" matches its
-      // "Sold For: $3,700,000" detail-page label exactly).
-      price: parseNumber(cell.attr("data-price")) ?? 0,
-      beds: parseNumber(cell.find(".IDX-resultsField-bedrooms .IDX-resultsText").first().text()),
-      baths: parseNumber(cell.find(".IDX-resultsField-totalBaths .IDX-resultsText").first().text()),
-      sqft: parseNumber(cell.find(".IDX-resultsField-sqFt .IDX-resultsText").first().text()),
-      photoUrl: cell.find(".IDX-resultsPhotoImg").first().attr("src") ?? null,
-      status: cell.attr("data-idxstatus") ?? "active",
-      description: cell.find(".IDX-resultsDescription").first().text().trim(),
-      lat: parseCoord(cell.attr("data-lat")),
-      lng: parseCoord(cell.attr("data-lng")),
-    });
-  });
-
-  return listings;
-}
-
 export type IdxResultsCount = { count: number; isMinimum: boolean };
 
 // Re-added 2026-08-29 for the neighborhood tiles' live counts (client
@@ -359,28 +287,13 @@ export async function fetchIdxResultsCount(filters: IdxSearchFilters): Promise<I
 // URL also goes straight into an <iframe>, not through that function.
 export const SOLD_PENDING_URL = "https://search.royalpalmsrealty.com/idx/soldpending?nowrapper=1";
 
-const FEATURED_URL = "https://search.royalpalmsrealty.com/idx/featured";
-
-// Scott's own currently-active Featured listings (tied to his Agent/Featured
-// IDs on the account). Prefers the real, authenticated IDX Broker API
-// (idxApi.ts) when a key is configured — it's the one page this data source
-// actually covers (see idxApi.ts's own comment on why it can't cover
-// anything else) — and falls back to scraping IDX Broker's public "Featured"
-// page (confirmed live: data-propCat="featured" on each result cell) if the
-// API isn't configured, or if it errors for any reason (e.g. a bad/expired
-// key), so a misconfigured API key can't take this page down.
-export async function fetchFeaturedListings(perPage = 24): Promise<ScrapedListing[]> {
-  if (isIdxApiConfigured()) {
-    try {
-      return await fetchFeaturedListingsViaApi(perPage);
-    } catch (err) {
-      console.error("IDX Broker API featured-listings fetch failed, falling back to scraping", err);
-    }
-  }
-
-  const url = new URL(FEATURED_URL);
-  url.searchParams.set("per", String(perPage));
-
-  const html = await fetchIdxHtml(url.toString());
-  return parseResultsCells(cheerio.load(html));
-}
+// Migration note (2026-08-29): Featured Listings moved to the same <iframe>
+// embed pattern as Search/Neighborhoods/Sold (see src/app/(site)/featured/page.tsx)
+// — no server-side fetch of any kind, scraping or API, since even the
+// occasional scrape-fallback failure this had (when no IDX_BROKER_API_KEY is
+// configured) was showing the same "vanishes on refresh" symptom as
+// everything else that used to scrape. The real authenticated API path
+// (idxApi.ts) was removed along with it rather than left as dead code; if a
+// future need for real Featured Listings *data* (not just display) comes up,
+// idxApi.ts's git history has the working implementation to restore from.
+export const FEATURED_URL = "https://search.royalpalmsrealty.com/idx/featured?nowrapper=1";
