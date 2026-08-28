@@ -11,11 +11,6 @@ import { MeetScottSection } from "@/components/home/MeetScottSection";
 import { Testimonials } from "@/components/home/Testimonials";
 import { heroMedia } from "@/lib/siteConfig";
 
-// NeighborhoodTilesSection now does a live MLS fetch for each tile's listing
-// count — without this, Next's default "fetch once at build, serve forever"
-// behavior would freeze that count at whatever it was on the last deploy.
-export const revalidate = 900;
-
 export default function Home() {
   return (
     <>

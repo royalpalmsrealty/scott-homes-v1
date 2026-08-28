@@ -75,7 +75,7 @@ export function HeroSearchInput() {
   function submit(query: string) {
     const trimmed = query.trim();
     if (!trimmed) return;
-    router.push(`/search/ai?q=${encodeURIComponent(trimmed)}`);
+    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
   }
 
   return (

@@ -22,10 +22,8 @@ export default async function NeighborhoodsPage({
   const { type, feature } = await searchParams;
   const filters = { condo: type === "condo", waterfront: feature === "waterfront" };
 
-  // Only Shark Key can currently be filtered with real MLS precision (see
-  // idxSearch.ts) — every other neighborhood shows no live count rather
-  // than a shared island-wide number, which is what the client flagged as
-  // misleading (it looked neighborhood-specific but wasn't).
+  // Each of these hits fetchIdxHtml's own cache first (5-min fresh window),
+  // so repeated page loads within that window cost zero extra requests.
   const countByName = new Map<string, { count: number; isMinimum: boolean }>();
   await Promise.all(
     neighborhoods
@@ -34,7 +32,8 @@ export default async function NeighborhoodsPage({
         try {
           countByName.set(n.name, await fetchIdxResultsCount({ ...filters, neighborhood: n.name }));
         } catch {
-          countByName.set(n.name, { count: 0, isMinimum: false });
+          // No count shown rather than a false 0 — see NeighborhoodCard's
+          // undefined-vs-0 handling.
         }
       })
   );
@@ -66,27 +65,20 @@ export default async function NeighborhoodsPage({
           or explore each neighborhood to see active listings and what makes it distinct.
         </p>
         <p className="mt-2 font-sans text-xs text-muted">
-          Active listing counts below are live from the Florida Keys MLS. Median price and days
-          on market (shown on each neighborhood&rsquo;s page) are still sample data pending a
-          full market-stats integration.
+          Median price and days on market shown on each neighborhood&rsquo;s page are still
+          sample data pending a full market-stats integration.
         </p>
 
         <div className="mt-6">
           <NeighborhoodFilterChips />
         </div>
-        <p className="mt-2 font-sans text-xs text-muted">
-          Note: IDX&rsquo;s public MLS search can only narrow geography to island level, not Key
-          West&rsquo;s individual neighborhoods — Shark Key is the one exception, being its own
-          island. Live counts below only show for neighborhoods IDX can filter precisely; we
-          don&rsquo;t show a count where it can&rsquo;t.
-        </p>
 
         <div className="mt-10 grid gap-x-10 gap-y-16 sm:grid-cols-2">
           {neighborhoods.map((neighborhood, i) => {
-            const result = countByName.get(neighborhood.name);
             const href = queryString
               ? `/neighborhoods/${neighborhood.slug}?${queryString}`
               : `/neighborhoods/${neighborhood.slug}`;
+            const result = countByName.get(neighborhood.name);
 
             return (
               <div key={neighborhood.slug}>

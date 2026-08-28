@@ -80,11 +80,18 @@ async function fetchIdxHtml(url: string): Promise<string> {
   }
 }
 
-// IDX Broker's raw API can't return general MLS search results on this
-// account's plan (see project notes) — but the hosted results page they
-// already serve for embedding contains the same data as structured HTML
-// (data-* attributes on each result cell), so this parses that instead of
-// re-deriving anything IDX Broker doesn't otherwise expose.
+// Migration note (2026-08-26): general search/results/sold/details scraping
+// (fetchIdxListings, fetchIdxResultsCount, fetchSoldListings) was removed from
+// this file after IDX Broker's own support team confirmed in writing that
+// server-side scraping their public pages isn't a supported integration
+// method (and declined to allowlist this server's IP). Those pages are now
+// embedded directly via <iframe> (see src/components/listings/IdxEmbed.tsx
+// and buildIdxSearchUrl in ./idxSearch, which still builds the same URLs —
+// just for an iframe src now, not a server-side fetch). What's left here is
+// deliberately scoped to low-volume, per-listing usage: fetchListingDetail
+// (used only by the Make an Offer flow, once per offer attempt — not bulk
+// browsing) and fetchFeaturedListings (prefers the real authenticated API in
+// idxApi.ts, only falls back to scraping if that's unconfigured/erroring).
 export type ScrapedListing = {
   listingId: string;
   mlsId: string;
@@ -117,7 +124,11 @@ export function parseOwnListingSlug(slug: string): { listingId: string; addressS
 }
 
 export function buildIdxDetailUrl(listingId: string, addressSlug: string, mlsId = "b066"): string {
-  return `https://search.royalpalmsrealty.com${detailPath(mlsId, listingId, addressSlug)}`;
+  // nowrapper=1 strips IDX Broker's own wrapper (see idxSearch.ts's
+  // buildIdxSearchUrl for the full explanation) — visitors land here via a
+  // real top-level redirect, so without this they'd see the old WordPress
+  // site's mismatched sidebar/nav on an otherwise-branded page.
+  return `https://search.royalpalmsrealty.com${detailPath(mlsId, listingId, addressSlug)}?nowrapper=1`;
 }
 
 export type ListingDetail = {
@@ -255,33 +266,6 @@ function parseCoord(text: string | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export type IdxResultsCount = { count: number; isMinimum: boolean };
-
-// The authoritative match total — separate from ScrapedListing rows, which
-// are capped at whatever `per` was requested for pagination. Confirmed live
-// (2026-08-20) that these genuinely diverge: an unfiltered Key West search
-// reports 500 (IDX's own display ceiling) while a Condo-filtered one reports
-// 202 — counting scraped rows instead would show the same number for both
-// once both exceed the requested page size, silently hiding that the filter
-// worked. isMinimum is true when IDX's own "more than the maximum number of
-// listings" message appears, meaning the true count exceeds what's shown.
-export async function fetchIdxResultsCount(filters: IdxSearchFilters): Promise<IdxResultsCount> {
-  const url = new URL(buildIdxSearchUrl(filters));
-  url.searchParams.set("per", "1");
-
-  // Was silently returning {count: 0} on any non-200, indistinguishable from
-  // a genuine zero-result search — fixed 2026-08-26 to throw like every
-  // other fetch here, so callers can show a real "couldn't load" state
-  // instead of a false "no listings" one.
-  const html = await fetchIdxHtml(url.toString());
-  const $ = cheerio.load(html);
-  const countText = $(".IDX-resultsCount").first().text().trim();
-  const count = parseInt(countText.replace(/[^0-9]/g, ""), 10) || 0;
-  const isMinimum = $("#IDX-resultsCountMessage").text().includes("more than the maximum");
-
-  return { count, isMinimum };
-}
-
 function parseResultsCells($: cheerio.CheerioAPI): ScrapedListing[] {
   const listings: ScrapedListing[] = [];
 
@@ -291,7 +275,13 @@ function parseResultsCells($: cheerio.CheerioAPI): ScrapedListing[] {
     const mlsId = cell.attr("data-idxid");
     if (!listingId || !mlsId) return;
 
-    const addressLink = cell.find(".IDX-resultsAddressLink").first();
+    // The main Results/Sold pages wrap the details link in
+    // .IDX-resultsAddressLink, but the Featured page (confirmed live
+    // 2026-08-26) uses .IDX-resultsPhotoLink for the same href instead —
+    // different template, same underlying URL. Try both rather than assume
+    // one, since silently skipping every cell here is what a mismatch here
+    // actually looks like (a page full of real listings parsing to zero).
+    const addressLink = cell.find(".IDX-resultsAddressLink, .IDX-resultsPhotoLink").first();
     const hrefMatch = addressLink.attr("href")?.match(/\/idx\/details\/listing\/[^/]+\/[^/]+\/([^/?#]+)/);
     const addressSlug = hrefMatch?.[1];
     if (!addressSlug) return;
@@ -327,32 +317,47 @@ function parseResultsCells($: cheerio.CheerioAPI): ScrapedListing[] {
   return listings;
 }
 
-// `start` is IDX Broker's own pagination offset (confirmed live 2026-08-26:
-// ?start=24&per=24 returns the next 24 rows after ?start=0/omitted) — pass
-// (page - 1) * perPage from a caller that wants page 2+.
-export async function fetchIdxListings(filters: IdxSearchFilters, perPage = 24, start = 0): Promise<ScrapedListing[]> {
+export type IdxResultsCount = { count: number; isMinimum: boolean };
+
+// Re-added 2026-08-29 for the neighborhood tiles' live counts (client
+// request) — a single per=1 request just to read the total, not the full
+// listing data behind it. Still the category of request IDX Broker's
+// support team said isn't officially supported, but it's the smallest
+// possible ask (no listing data, just a number) and goes through the same
+// retry/cache-fallback machinery (fetchIdxHtml) as everything else here, so
+// a transient block degrades to "no count shown" rather than a hard error.
+export async function fetchIdxResultsCount(filters: IdxSearchFilters): Promise<IdxResultsCount> {
   const url = new URL(buildIdxSearchUrl(filters));
-  url.searchParams.set("per", String(perPage));
-  if (start > 0) url.searchParams.set("start", String(start));
+  url.searchParams.set("per", "1");
 
   const html = await fetchIdxHtml(url.toString());
-  return parseResultsCells(cheerio.load(html));
+  const $ = cheerio.load(html);
+
+  // Two different templates, two different places the count lives — confirmed
+  // live 2026-08-29 after activating the "Home Atlas" template for Results.
+  // Legacy templates (Narrow, Content, etc.) render it as readable text in
+  // .IDX-resultsCount ("77"). Home Atlas instead encodes it directly in a CSS
+  // class name on the page container (IDX-totalResults-77) and doesn't render
+  // the old text element at all. Try the new one first since it's what's
+  // live now; fall back to the old selector for any page type still on a
+  // legacy template (e.g. Sold/Pending, Featured).
+  const classMatch = $(".IDX-pageContainer").first().attr("class")?.match(/IDX-totalResults-(\d+)/);
+  const countText = classMatch?.[1] ?? $(".IDX-resultsCount").first().text().trim();
+  const count = parseInt(countText.replace(/[^0-9]/g, ""), 10) || 0;
+  const isMinimum = count >= 500 || $("#IDX-resultsCountMessage").text().includes("more than the maximum");
+
+  return { count, isMinimum };
 }
 
-const SOLD_PENDING_URL = "https://search.royalpalmsrealty.com/idx/soldpending";
-
-// This is Scott's own past sold/pending listings specifically (tied to his
-// Agent ID on the account), not a general MLS-wide sold-comps feed — a real,
-// public IDX Broker page (no login/access-code wall), confirmed live
-// against the account's own admin "Sold/Pending" list. Fixed at 10 total
-// results regardless of `per` — that's the real count, not a page-size cap.
-export async function fetchSoldListings(perPage = 24): Promise<ScrapedListing[]> {
-  const url = new URL(SOLD_PENDING_URL);
-  url.searchParams.set("per", String(perPage));
-
-  const html = await fetchIdxHtml(url.toString());
-  return parseResultsCells(cheerio.load(html));
-}
+// Exported so /sold/page.tsx can point an <iframe> straight at it — IDX
+// Broker's own page, not something we fetch/parse anymore (see the 2026-08-26
+// migration comment at the top of this file: general search/results/sold
+// pages moved to embedding IDX Broker's own pages after their support team
+// confirmed server-side scraping isn't a supported integration method).
+// nowrapper=1 strips IDX Broker's own wrapper (see idxSearch.ts's
+// buildIdxSearchUrl for the full explanation) — needed here too since this
+// URL also goes straight into an <iframe>, not through that function.
+export const SOLD_PENDING_URL = "https://search.royalpalmsrealty.com/idx/soldpending?nowrapper=1";
 
 const FEATURED_URL = "https://search.royalpalmsrealty.com/idx/featured";
 

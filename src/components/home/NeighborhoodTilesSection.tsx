@@ -6,10 +6,11 @@ import { getNeighborhoodFilterStatus } from "@/lib/listings/idxSearch";
 import { fetchIdxResultsCount } from "@/lib/listings/idxScrape";
 
 export async function NeighborhoodTilesSection() {
-  // Only Shark Key can currently be filtered with real MLS precision (see
-  // idxSearch.ts) — every other tile shows no live count rather than the
-  // same island-wide number repeated across every tile, which is what this
-  // used to do before the client flagged it as misleading.
+  // This is the homepage — highest-traffic page on the site — so these 10
+  // parallel count checks lean on fetchIdxHtml's own 5-minute cache more
+  // than anywhere else: only the first visitor in any 5-minute window
+  // actually triggers live requests, everyone else in that window gets the
+  // cached count for free.
   const countByName = new Map<string, { count: number; isMinimum: boolean }>();
   await Promise.all(
     neighborhoods
@@ -18,7 +19,7 @@ export async function NeighborhoodTilesSection() {
         try {
           countByName.set(n.name, await fetchIdxResultsCount({ neighborhood: n.name }));
         } catch {
-          countByName.set(n.name, { count: 0, isMinimum: false });
+          // No count shown rather than a false 0.
         }
       })
   );

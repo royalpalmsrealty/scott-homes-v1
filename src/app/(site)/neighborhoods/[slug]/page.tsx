@@ -5,25 +5,11 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { NeighborhoodPhoto } from "@/components/neighborhoods/NeighborhoodPhoto";
 import { NeighborhoodAlertForm } from "@/components/neighborhoods/NeighborhoodAlertForm";
 import { NeighborhoodFilterChips } from "@/components/neighborhoods/NeighborhoodFilterChips";
-import { ScrapedListingCard } from "@/components/listings/ScrapedListingCard";
+import { IdxEmbed } from "@/components/listings/IdxEmbed";
 import { getNeighborhood, getAdjacentNeighborhoods } from "@/lib/neighborhoods";
-import { getNeighborhoodFilterStatus } from "@/lib/listings/idxSearch";
-import { fetchIdxListings, fetchIdxResultsCount, type ScrapedListing } from "@/lib/listings/idxScrape";
+import { buildIdxSearchUrl, getNeighborhoodFilterStatus } from "@/lib/listings/idxSearch";
 
-export const dynamic = "force-dynamic"; // listings below are a live MLS lookup
-
-// Neighborhood pages always filter via a_locationTaxLegalKwNeighborhood[],
-// and IDX Broker's own pagination offset (`start`) silently returns 0
-// results (not an error) whenever it's combined with any of their `[]`
-// array-style filter params — confirmed live 2026-08-26. So this doesn't
-// attempt real Prev/Next paging. It also can't just raise `per` to cover
-// every neighborhood in one request: per=100 was confirmed (via Vercel
-// function logs) to get a fast 403 from IDX Broker's own WAF specifically
-// for Vercel-originated requests, while the identical URL succeeds every
-// time from elsewhere — so this stays at IDX's original page size, and the
-// "Showing the first N" note below covers whichever neighborhoods that
-// doesn't fully fit (Old Town and New Town, today).
-const PER_PAGE = 24;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -55,37 +41,12 @@ export default async function NeighborhoodPage({
   const condo = type === "condo";
   const waterfront = feature === "waterfront";
 
-  const backParams = new URLSearchParams();
-  if (type) backParams.set("type", type);
-  if (feature) backParams.set("feature", feature);
-  const backQuery = backParams.toString();
-  const backHref = `/neighborhoods/${slug}${backQuery ? `?${backQuery}` : ""}`;
-
   // Client-reported bug fix (2026-08-22): never silently fall back to an
   // all-of-Key-West search when the requested neighborhood can't be
-  // filtered precisely — skip the fetch entirely and show that honestly
-  // instead of returning unrelated properties.
+  // filtered precisely — show that honestly instead of returning unrelated
+  // properties. Still a pure local check, no fetch involved.
   const filterStatus = getNeighborhoodFilterStatus(neighborhood.name);
-  const filters = { neighborhood: neighborhood.name, condo, waterfront };
-
-  // Client-reported bug fix (2026-08-26): a transient IDX Broker fetch
-  // failure used to render identically to "genuinely zero active listings"
-  // — now a real failure gets its own honest state.
-  let listings: ScrapedListing[] = [];
-  let resultsCount = { count: 0, isMinimum: false };
-  let fetchError = false;
-  if (filterStatus.available) {
-    try {
-      [listings, resultsCount] = await Promise.all([
-        fetchIdxListings(filters, PER_PAGE),
-        fetchIdxResultsCount(filters),
-      ]);
-    } catch (err) {
-      console.error(`Neighborhood page listings fetch failed for ${neighborhood.name}`, err);
-      fetchError = true;
-    }
-  }
-  const truncated = resultsCount.count > PER_PAGE;
+  const resultsUrl = buildIdxSearchUrl({ neighborhood: neighborhood.name, condo, waterfront });
 
   const adjacent = getAdjacentNeighborhoods(slug);
   const hasSampleStats = neighborhood.medianPrice !== undefined;
@@ -163,27 +124,17 @@ export default async function NeighborhoodPage({
 
       <section className="bg-paper py-14 sm:py-24">
         <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <SectionHeading
-              eyebrow="Active Listings"
-              heading={`Homes for Sale in ${neighborhood.name}`}
-              as="h2"
-            />
-            {filterStatus.available && !fetchError && (
-              <p className="font-sans text-sm text-muted">
-                {resultsCount.isMinimum
-                  ? `${resultsCount.count}+ live results`
-                  : `${resultsCount.count} live result${resultsCount.count === 1 ? "" : "s"}`}
-              </p>
-            )}
-          </div>
+          <SectionHeading
+            eyebrow="Active Listings"
+            heading={`Homes for Sale in ${neighborhood.name}`}
+            as="h2"
+          />
 
           {filterStatus.available && (
             <div className="mt-6">
               <NeighborhoodFilterChips />
             </div>
           )}
-
 
           {!filterStatus.available ? (
             <div className="mt-10 rounded-2xl border border-line bg-white p-8 text-center">
@@ -200,45 +151,9 @@ export default async function NeighborhoodPage({
                 Search All Key West Listings
               </Link>
             </div>
-          ) : fetchError ? (
-            <div className="mt-10 rounded-2xl border border-line bg-white p-8 text-center">
-              <p className="font-sans text-base text-body">
-                We couldn&rsquo;t reach the live MLS feed just now — this is a temporary
-                connection issue, not a real 0. Please refresh in a moment.
-              </p>
-            </div>
-          ) : listings.length > 0 ? (
-            <>
-              {truncated && (
-                <p className="mt-2 font-sans text-sm text-gold-deep">
-                  Showing the first {PER_PAGE} of {resultsCount.count} — add a price or bed filter
-                  above to narrow it down further.
-                </p>
-              )}
-              <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {listings.map((listing) => (
-                  <ScrapedListingCard
-                    key={listing.listingId}
-                    listing={listing}
-                    backHref={backHref}
-                    backLabel={`Back to ${neighborhood.name}`}
-                  />
-                ))}
-              </div>
-            </>
           ) : (
-            <div className="mt-10 rounded-2xl border border-line bg-white p-8 text-center">
-              <p className="font-sans text-base text-body">
-                {condo || waterfront
-                  ? `No matching listings in ${neighborhood.name} right now — try clearing a filter above.`
-                  : `No active listings in ${neighborhood.name} right now.`}
-              </p>
-              <Link
-                href="/search"
-                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-6 py-2.5 font-sans text-sm font-medium text-white transition-colors hover:bg-teal hover:text-ink"
-              >
-                Search All Key West Listings
-              </Link>
+            <div className="mt-10 overflow-hidden rounded-2xl border border-line">
+              <IdxEmbed src={resultsUrl} title={`Homes for Sale in ${neighborhood.name}`} />
             </div>
           )}
         </div>

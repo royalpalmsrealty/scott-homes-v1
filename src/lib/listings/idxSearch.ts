@@ -106,6 +106,11 @@ export function buildIdxSearchUrl(filters: IdxSearchFilters): string {
   const params = new URLSearchParams();
   params.set("idxID", IDX_ID);
   params.set("pt", "1"); // Residential — the default intent for a home-buyer search
+  // Strips IDX Broker's own wrapper (the old WordPress site's header/sidebar,
+  // still assigned to this account's pages) — confirmed live 2026-08-26 via
+  // their own troubleshooting doc's "?nowrapper" trick. Without this, our
+  // <iframe> embeds show a second, unrelated site chrome nested inside ours.
+  params.set("nowrapper", "1");
 
   if (filters.minPrice) params.set("lp", String(filters.minPrice));
   if (filters.maxPrice) params.set("hp", String(filters.maxPrice));
