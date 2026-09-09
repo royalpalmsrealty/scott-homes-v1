@@ -127,7 +127,8 @@ export const neighborhoods: Neighborhood[] = [
     tileBlurb: "A quieter island community connected by a short causeway.",
     imageDirection: "Canal-front homes with docks and boats",
     image: "/neighborhoods/key-haven.jpg",
-    imageAlt: "Canal-front homes with private docks in Key Haven",
+    imageAlt: "Quiet canal-front homes with private docks and boats — a representative Keys residential scene",
+    imageIsGeneric: true,
     overview: [
       "Key Haven sits just off Key West proper, connected by a short causeway — technically its own small island, and noticeably quieter and more suburban than anything in town.",
       "Canal-front lots with private docks are common here, making it a natural fit for boat owners who want deep water access without the density (or the price point) of Casa Marina or Truman Annex.",
