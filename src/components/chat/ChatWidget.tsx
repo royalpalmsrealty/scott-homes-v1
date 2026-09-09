@@ -2,21 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { PropertyCard } from "@/components/listings/PropertyCard";
 import { ChatMarkdown } from "@/components/chat/ChatMarkdown";
 import { openCalendlyPopup } from "@/components/scheduling/CalendlyButton";
 import { brand } from "@/lib/brand";
-import type { Listing } from "@/lib/listings/provider";
+
+type SearchResultsSummary = { count: number; isMinimum: boolean; url: string };
 
 type UIMessage = {
   role: "user" | "assistant";
   content: string;
-  listings?: Listing[];
+  searchResults?: SearchResultsSummary;
 };
 
 type ClientAction =
-  | { type: "listings"; listings: Listing[] }
-  | { type: "listing"; listing: Listing }
+  | { type: "searchResults"; count: number; isMinimum: boolean; url: string }
   | { type: "open_scheduling"; prefill: { name?: string; email?: string } };
 
 const STORAGE_KEY = "chatConversation";
@@ -155,7 +154,9 @@ export function ChatWidget() {
       const actions: ClientAction[] = data.clientActions ?? [];
 
       for (const action of actions) {
-        if (action.type === "listings") assistantMessage.listings = action.listings;
+        if (action.type === "searchResults") {
+          assistantMessage.searchResults = { count: action.count, isMinimum: action.isMinimum, url: action.url };
+        }
         if (action.type === "open_scheduling") {
           openCalendlyPopup(action.prefill, "chatbot");
         }
@@ -334,14 +335,20 @@ export function ChatWidget() {
                         message.content
                       )}
                     </div>
-                    {message.listings && message.listings.length > 0 && (
-                      <div className="mt-3 grid gap-4">
-                        {message.listings.map((listing) => (
-                          <div key={listing.id} className="max-w-full">
-                            <PropertyCard listing={listing} />
-                          </div>
-                        ))}
-                      </div>
+                    {message.searchResults && (
+                      <a
+                        href={message.searchResults.url}
+                        className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-4 py-3 shadow-sm ring-1 ring-line transition-colors hover:border-teal/40"
+                      >
+                        <span className="font-sans text-sm font-medium text-ink">
+                          {message.searchResults.isMinimum
+                            ? `${message.searchResults.count}+ live results`
+                            : `${message.searchResults.count} live result${message.searchResults.count === 1 ? "" : "s"}`}
+                        </span>
+                        <span className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-full bg-teal px-4 font-sans text-xs font-medium text-ink">
+                          View Listings &rarr;
+                        </span>
+                      </a>
                     )}
                   </div>
                 </div>

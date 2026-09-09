@@ -45,6 +45,7 @@ export async function POST(request: Request) {
 
   const clientActions: ClientAction[] = [];
   let finalText = "";
+  const lastUserMessage = [...parsed.data.messages].reverse().find((m) => m.role === "user")?.content ?? "";
 
   // Only added once documents actually exist to search — otherwise the tool
   // list stays exactly as it was before the knowledge base existed.
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
 
       for (const call of functionCalls) {
         const callInput = JSON.parse(call.arguments || "{}");
-        const { result, clientAction } = await executeChatTool(call.name, callInput);
+        const { result, clientAction } = await executeChatTool(call.name, callInput, { lastUserMessage });
         if (clientAction) clientActions.push(clientAction);
         input.push({
           type: "function_call_output",
