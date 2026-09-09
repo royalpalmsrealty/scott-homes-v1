@@ -20,7 +20,10 @@ export default function New7DaysPage() {
       </p>
 
       <div className="mt-10 overflow-hidden rounded-2xl border border-line">
-        <IdxEmbed src={buildIdxSearchUrl({ sort: "newest" })} title="New in the Last 7 Days" />
+        <IdxEmbed
+          src={buildIdxSearchUrl({ sort: "newest", coverageAreaOnly: true })}
+          title="New in the Last 7 Days"
+        />
       </div>
 
       <p className="mt-8 font-sans text-xs text-muted">

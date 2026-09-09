@@ -80,6 +80,34 @@ export function getNeighborhoodFilterStatus(neighborhoodName: string): Neighborh
   return { available: true, mode: "kwValues", kwValues };
 }
 
+// Client request (2026-09-09): "New Listings" shouldn't include anything
+// past Mile Marker 30 — Scott's actual coverage area is Key West through
+// the Lower Keys (Big Pine Key sits right at MM 30), not Marathon,
+// Islamorada, or points further up the chain, which an unfiltered "newest"
+// search was otherwise pulling in. IDs are the real values from IDX
+// Broker's own Advanced Search form's city dropdown (confirmed live
+// 2026-09-09 — this is the "city[]" field documented above, not a guess),
+// covering every named place from Key West up to and including Big Pine
+// Key / No Name Key.
+const COVERAGE_AREA_CITY_IDS = [
+  "24130", // Key West
+  "44757", // Stock Island
+  "54148", // Rockland Key
+  "54149", // Big Coppitt
+  "54152", // Geiger Key
+  "54150", // Shark Key
+  "54151", // Saddlebunch
+  "45150", // Sugarloaf Key
+  "11102", // Cudjoe Key
+  "45220", // Summerland Key
+  "38384", // Ramrod Key
+  "26776", // Little Torch Key
+  "29984", // Middle Torch Key
+  "4069", // Big Torch Key
+  "33057", // No Name Key
+  "4032", // Big Pine Key
+];
+
 export type IdxSearchFilters = {
   // Only ever pass a neighborhood here once the caller has already checked
   // getNeighborhoodFilterStatus(...).available — this function does not
@@ -100,6 +128,10 @@ export type IdxSearchFilters = {
   // so this can order by newest-first but can't answer "listed in the last
   // N hours" precisely — see the "New Listings" pages for how that's handled.
   sort?: "newest";
+  // Restricts to COVERAGE_AREA_CITY_IDS (Key West through Mile Marker 30).
+  // Only meaningful without a neighborhood set — a neighborhood filter is
+  // already scoped inside Key West, so this is skipped whenever one applies.
+  coverageAreaOnly?: boolean;
 };
 
 export function buildIdxSearchUrl(filters: IdxSearchFilters): string {
@@ -118,6 +150,9 @@ export function buildIdxSearchUrl(filters: IdxSearchFilters): string {
   if (filters.condo) params.append("a_propSubType[]", "Condominium");
   if (filters.waterfront) params.set("a_waterfrontYN", "Y");
   if (filters.sort === "newest") params.set("srt", "newest");
+  if (filters.coverageAreaOnly && !filters.neighborhood) {
+    for (const id of COVERAGE_AREA_CITY_IDS) params.append("city[]", id);
+  }
 
   // No fallback: if the neighborhood doesn't resolve to a real KW
   // Neighborhood value or saved link, no geography filter is applied at all

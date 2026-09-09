@@ -20,7 +20,10 @@ export default function New24HoursPage() {
       </p>
 
       <div className="mt-10 overflow-hidden rounded-2xl border border-line">
-        <IdxEmbed src={buildIdxSearchUrl({ sort: "newest" })} title="New in the Last 24 Hours" />
+        <IdxEmbed
+          src={buildIdxSearchUrl({ sort: "newest", coverageAreaOnly: true })}
+          title="New in the Last 24 Hours"
+        />
       </div>
 
       <p className="mt-8 font-sans text-xs text-muted">
