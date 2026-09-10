@@ -150,6 +150,12 @@ export async function executeChatTool(
         minBeds: bedsConfirmed ? (input.beds as number | undefined) ?? null : null,
         condo: Boolean(input.condo),
         waterfront: Boolean(input.waterfront),
+        // Same fix as /search (2026-09-10): without this, a citywide question
+        // with no neighborhood counted/linked across IDX Broker's whole
+        // Florida Keys board (Marathon, Islamorada, etc.), not just Scott's
+        // real Key West-through-Mile-Marker-30 coverage area. Skipped
+        // automatically by buildIdxSearchUrl whenever neighborhood is set.
+        coverageAreaOnly: true,
       };
 
       try {

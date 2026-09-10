@@ -59,6 +59,15 @@ export default async function SearchPage({
     minBeds: params.minBeds ? Number(params.minBeds) : aiMinBeds,
     condo: params.type === "condo",
     waterfront: params.feature === "waterfront",
+    // Client-reported bug fix (2026-09-10): a query the AI parser can't tie
+    // to one of our tracked neighborhoods (e.g. "close to the beach", "with
+    // a pool" — fields it doesn't model) ran with no geography filter at
+    // all, so IDX Broker's board returned results across the whole Florida
+    // Keys MLS — Marathon, Islamorada, Tavernier — not just Scott's actual
+    // Key West-through-Mile-Marker-30 coverage area. Same restriction
+    // already used on the New Listings pages; buildIdxSearchUrl skips it
+    // automatically whenever a real neighborhood filter is set instead.
+    coverageAreaOnly: true,
   };
   const neighborhoodStatus = neighborhood ? getNeighborhoodFilterStatus(neighborhood) : null;
   // Client-reported bug fix (2026-08-22): if a neighborhood was requested but
