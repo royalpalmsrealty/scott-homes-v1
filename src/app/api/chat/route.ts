@@ -29,7 +29,7 @@ const OFFLINE_REPLY = `I'm not available yet while our AI assistant is being set
 // trust a paraphrase-proof regex to catch every wording, or risk one
 // getting through to a visitor.
 const INTERNAL_MECHANISM_LEAK =
-  /\b(uploaded|provided)\s+(documents?|files?)\b|\b(documents?|files?)\s+(i|you)\S{0,3}\s{0,12}(uploaded|reviewed|accessed|have)\b|\b(documents?|files?)\s+(provided|available|uploaded)\b|\bin the (information|documents|files)\s+(i|you)\S{0,3}\s{0,12}(accessed|found|have|reviewed)\b|\bknowledge\s*base\b|\bI\s+(searched|checked)\s+(the\s+)?(documents?|files?|knowledge\s*base)\b/i;
+  /\b(uploaded|provided)\s+(documents?|files?)\b|\bin (the|my)\s+(documents?|files?|records?|materials?|resources?|information|knowledge\s*base)\b|\b(documents?|files?)\s+(provided|available|uploaded)\b|\bknowledge\s*base\b|\bI\s+(searched|checked)\s+(the\s+)?(documents?|files?|knowledge\s*base)\b/i;
 
 function sanitizeReply(text: string): string {
   if (INTERNAL_MECHANISM_LEAK.test(text)) {
