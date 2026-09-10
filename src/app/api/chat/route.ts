@@ -17,6 +17,27 @@ const MAX_TOOL_ROUNDTRIPS = 4;
 
 const OFFLINE_REPLY = `I'm not available yet while our AI assistant is being set up. In the meantime, call ${brand.broker.name} directly at ${brand.phone.display}, or use the contact form and he'll get back to you personally.`;
 
+// The system prompt tells the model never to narrate its own file_search
+// lookup, but that instruction alone isn't reliable on gpt-4o-mini —
+// confirmed live 2026-09-10, it still occasionally said things like "in
+// the documents I reviewed" or "in the information I've accessed" despite
+// the rule. file_search's retrieval results come from OpenAI's own
+// built-in tool, injected server-side — we can't rewrite what the model
+// sees, only what it's allowed to say. This is the deterministic backstop:
+// if any phrasing of "I looked in my documents/files/knowledge base"
+// slips through, swap the whole reply for a safe generic line rather than
+// trust a paraphrase-proof regex to catch every wording, or risk one
+// getting through to a visitor.
+const INTERNAL_MECHANISM_LEAK =
+  /\b(uploaded|provided)\s+(documents?|files?)\b|\b(documents?|files?)\s+(i|you)\S{0,3}\s{0,12}(uploaded|reviewed|accessed|have)\b|\b(documents?|files?)\s+(provided|available|uploaded)\b|\bin the (information|documents|files)\s+(i|you)\S{0,3}\s{0,12}(accessed|found|have|reviewed)\b|\bknowledge\s*base\b|\bI\s+(searched|checked)\s+(the\s+)?(documents?|files?|knowledge\s*base)\b/i;
+
+function sanitizeReply(text: string): string {
+  if (INTERNAL_MECHANISM_LEAK.test(text)) {
+    return `I don't have that specific detail on hand. Want me to connect you with ${brand.broker.name}, or can I help with something else?`;
+  }
+  return text;
+}
+
 export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const rate = checkRateLimit(`chat:${ip}`, 20, 10 * 60 * 1000);
@@ -64,7 +85,7 @@ export async function POST(request: Request) {
       const functionCalls = extractFunctionCalls(data);
 
       if (functionCalls.length === 0) {
-        finalText = extractFinalText(data);
+        finalText = sanitizeReply(extractFinalText(data));
         break;
       }
 
