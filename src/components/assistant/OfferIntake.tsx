@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { applyAgentIntakePatch, applyIntakePatch, canBeginOffer, emptyIntake, IntakeSchema, needsAgentCoordination, validateIntakeField, type IntakeDraft } from "@/lib/offerIntake";
+import { applyAgentIntakePatch, applyIntakePatch, canBeginOffer, emptyIntake, getOfferDraftContext, IntakeSchema, needsAgentCoordination, validateIntakeField, type IntakeDraft } from "@/lib/offerIntake";
 import { brand } from "@/lib/brand";
 import { useScreenAwake } from "./useScreenAwake";
 import { ScreenAwakeNotice } from "./ScreenAwakeNotice";
@@ -120,7 +120,9 @@ export function OfferIntake({ active }: { active: boolean }) {
         update(patch, true);
         if (needsAgentCoordination(latestDraft.current.representation)) return "Existing-agent answer saved. Pause the offer intake for office coordination; do not collect more terms.";
         if (!canBeginOffer(latestDraft.current.representation)) return "No offer terms saved. First ask whether the buyer is working with another real estate agent. Record their explicit answer using representation.";
-        if (patch.propertyReference) return findProperty(latestDraft.current.propertyReference);
+        const propertyResult = patch.propertyReference ? await findProperty(latestDraft.current.propertyReference) : "";
+        // Return the actual saved values before the AI chooses its next question.
+        return `${propertyResult}\n\n${getOfferDraftContext(latestDraft.current)}`;
       }} />}
     </>}
     {showingConversation && needsAgentCoordination(draft.representation) && <p className="rounded-lg bg-paper p-3 text-sm">Please <a href={brand.phone.href} className="text-teal-deep underline">contact our office</a> so we can coordinate your existing-agent status before continuing.</p>}

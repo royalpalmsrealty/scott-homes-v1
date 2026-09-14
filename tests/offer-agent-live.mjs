@@ -42,7 +42,7 @@ async function runCase(name, exchanges, initialDraft = {}) {
           const patch = parseIntakePatch(parameters);
           assert.ok(patch, 'Draft tool only uses supported fields');
           draft = applyAgentIntakePatch(draft, patch);
-          return 'Buyer-stated details updated locally for this fictional test, replacing prior values. ' + (patch.propertyReference ? 'Your address is saved. MLS lookup is not connected yet, so no listing details were retrieved. No broker permission is needed to save or correct an address. ' : '') + 'Continue to the next missing question. They are unconfirmed and unsent. No lead, email, text or contract is created.';
+          return 'Buyer-stated details updated locally for this fictional test, replacing prior values. ' + (patch.propertyReference ? 'Your address is saved. MLS lookup is not connected yet, so no listing details were retrieved. No broker permission is needed to save or correct an address. ' : '') + 'They are unconfirmed and unsent. No lead, email, text or contract is created.\n\n' + getOfferDraftContext(draft);
         },
       },
     });
@@ -94,6 +94,11 @@ await runCase('Spoken opening No', [
 ], {representation: ''});
 await runCase('Spoken opening Yes', [
   {label: 'Yes pauses offer collection', message: 'Before we begin, I am already working with another real estate agent on this purchase.', patterns: [/coordinat|office|pause|contact/i], forbidden: [/what.*(?:price|deposit|address)/i], expectedDraft: {representation: representationChoices.otherAgent, propertyReference: ''}},
+], {representation: ''});
+await runCase('Spoken opening short No', [
+  {label: 'Remember the address from the fixed greeting', message: '123 Short Answer Lane, Key West, Florida.', patterns: [/working with.*(?:agent|broker)|have.*agent/i], forbidden: [/what.*(?:address|property)|confirm.*address/i], expectedDraft: {representation: '', propertyReference: ''}},
+  {label: 'A blank form update does not erase the spoken address', edit: {}, message: 'No.', patterns: [/price|offer|amount/i], forbidden: [/what.*(?:address|property)|confirm.*address/i], expectedDraft: {representation: representationChoices.transactionBroker, propertyReference: '123 Short Answer Lane, Key West, Florida'}},
+  {label: 'Continue to escrow after price', message: 'One million dollars.', patterns: [/escrow|deposit/i, /20\s*%|twenty percent/i], forbidden: [/what.*(?:address|property)|confirm.*address/i], expectedDraft: {propertyReference: '123 Short Answer Lane, Key West, Florida'}, expectedDraftPatterns: {offerPrice: [/^1000000(?:\.00)?$/]}},
 ], {representation: ''});
 await runCase('Human help on request', [
   {label: 'Human request takes priority before any intake question', message: 'I want to speak to a live agent. Please connect me to Scott.', patterns: [/call Scott now/i], forbidden: [/working with.*agent|what.*address|transferring you|transfer.*(?:underway|now)|Scott (?:has|will) answer/i], expectedDraft: {representation: '', propertyReference: ''}},

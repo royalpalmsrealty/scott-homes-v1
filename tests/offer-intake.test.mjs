@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { acceptOfferSuggestion, applyAgentIntakePatch, applyIntakePatch, canBeginOffer, emptyIntake, getIntakeFields, getOfferSessionDetails, getOfferDraftContext, getOfferGuidance, IntakeSchema, IntakeSubmissionSchema, representationChoices, StoredIntakeSchema, parseIntakePatch, validateIntakeField } from "../src/lib/offerIntake.ts";
+import { acceptOfferSuggestion, applyAgentIntakePatch, applyIntakePatch, canBeginOffer, emptyIntake, getIntakeFields, getOfferNextQuestion, getOfferSessionDetails, getOfferDraftContext, getOfferGuidance, IntakeSchema, IntakeSubmissionSchema, representationChoices, StoredIntakeSchema, parseIntakePatch, validateIntakeField } from "../src/lib/offerIntake.ts";
 
 const valid = {
   propertyReference: "123 Example Street, Unit 4, Key West, FL",
@@ -143,4 +143,13 @@ test("the spoken opening records an explicit answer and rejects premature offer 
   assert.match(getOfferSessionDetails(accepted).firstMessage, /address/);
   const correction = applyAgentIntakePatch({ ...draft, representation: representationChoices.otherAgent }, { representation: representationChoices.transactionBroker });
   assert.equal(canBeginOffer(correction.representation), true);
+});
+
+test("saving the opening address with No advances the tool context to price, then escrow", () => {
+  const draft = applyAgentIntakePatch({ ...emptyIntake }, { representation: representationChoices.transactionBroker, propertyReference: valid.propertyReference });
+  assert.match(getOfferNextQuestion(draft), /purchase price/);
+  assert.match(getOfferDraftContext(draft), /Current next question[^\n]*purchase price/);
+  const priced = applyAgentIntakePatch(draft, { offerPrice: valid.offerPrice });
+  assert.match(getOfferNextQuestion(priced), /20%.*10%.*escrow deposit/s);
+  assert.equal(priced.propertyReference, valid.propertyReference);
 });
