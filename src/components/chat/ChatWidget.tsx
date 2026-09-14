@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChatMarkdown } from "@/components/chat/ChatMarkdown";
 import { openCalendlyPopup } from "@/components/scheduling/CalendlyButton";
 import { brand } from "@/lib/brand";
+import { AssistantButton } from "@/components/assistant/AssistantButton";
 
 type SearchResultsSummary = { count: number; isMinimum: boolean; url: string };
 
@@ -300,6 +301,10 @@ export function ChatWidget() {
           <p className="bg-teal/8 px-4 py-2 font-sans text-[11px] text-teal-deep">
             {brand.broker.name} isn&rsquo;t in this chat — this is an AI assistant.
           </p>
+          <div className="flex gap-2 border-b border-line px-4 py-3 text-xs">
+            <AssistantButton mode="agent" onClick={() => setOpen(false)} className="flex-1 rounded-full border border-teal-deep px-3 py-2 text-teal-deep">Talk to our AI</AssistantButton>
+            <AssistantButton onClick={() => setOpen(false)} className="flex-1 rounded-full bg-teal-deep px-3 py-2 text-white">Make an Offer</AssistantButton>
+          </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto bg-paper/40 px-4 py-4">
             <div className="flex flex-col gap-4">

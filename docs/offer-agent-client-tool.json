@@ -1,0 +1,145 @@
+{
+  "type": "client",
+  "name": "update_offer_draft",
+  "description": "Add only buyer-stated or explicitly accepted answers to the editable website offer draft. Never assume acceptance of Scott’s suggestions. Does not confirm, submit, contact anyone or create a contract.",
+  "expects_response": true,
+  "response_timeout_secs": 15,
+  "parameters": [
+    {
+      "id": "representation",
+      "type": "string",
+      "description": "Record only the buyer’s explicit answer to the opening spoken existing-agent question. No: exactly No other agent. Yes: exactly Working with another agent — coordinate before proceeding. Unsure: exactly Unsure about another agent — discuss before proceeding. Never infer No from an address or describe the buyer as self-represented. Pause on Yes/unsure; omit this field on other turns unless explicitly corrected.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "propertyReference",
+      "type": "string",
+      "description": "Full buyer-supplied property address and unit, MLS number or listing link. Unverified.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "offerPrice",
+      "type": "string",
+      "description": "Explicit buyer offer price in plain numeric US dollars, up to two decimals; no commas or dollar sign.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "deposit",
+      "type": "string",
+      "description": "Buyer-confirmed escrow amount/percent, timing and additional deposit if supplied. Suggest 20%, but never assume acceptance.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "financing",
+      "type": "string",
+      "description": "Exactly Cash, Financing, or Discuss with Scott.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "inspection",
+      "type": "string",
+      "description": "Buyer-confirmed inspection days or Discuss with Scott. Suggest 7 days and no more than 15; record only accepted terms.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "titleInsurance",
+      "type": "string",
+      "description": "Buyer-confirmed proposed payer for title insurance specifically. Scott suggests seller pays; negotiable.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "closingCompany",
+      "type": "string",
+      "description": "Buyer-confirmed proposed closing company/person or payer selection. Scott suggests Greg Oropeza; subject to the choice of whoever pays title insurance.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "financingContingency",
+      "type": "string",
+      "description": "Buyer-confirmed financing-contingency period or Discuss with Scott. Suggest 30 days; omit for cash.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "closingDate",
+      "type": "string",
+      "description": "Buyer-confirmed closing date or timeframe. Cash suggestion: 20 days if no title issues. Financed suggestion: 15 additional days after the financing-contingency period. No invented date.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "conditions",
+      "type": "string",
+      "description": "Complete buyer-confirmed clauses and requests, including furniture or anything else raised in the final special-requests question. Preserve all previously accepted clauses when adding requests. Suggest seller close all open permits, including tree permits, before closing at seller expense; include only if accepted. No additional requests does not cancel accepted clauses. None only if buyer has no clauses or requests at all.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "buyerName",
+      "type": "string",
+      "description": "Buyer-stated legal name(s) for the proposed offer.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "buyerEmail",
+      "type": "string",
+      "description": "Buyer-stated contact email; confirm spelling if needed.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    },
+    {
+      "id": "buyerPhone",
+      "type": "string",
+      "description": "Buyer-stated contact phone number.",
+      "dynamic_variable": "",
+      "required": false,
+      "constant_value": "",
+      "value_type": "llm_prompt"
+    }
+  ],
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "assignments": [],
+  "interruption_mode": "allow",
+  "pre_tool_speech": "auto",
+  "tool_call_sound": null,
+  "tool_call_sound_behavior": "auto",
+  "execution_mode": "immediate",
+  "response_mocks": []
+}
