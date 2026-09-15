@@ -37,9 +37,16 @@ export const neighborhoodHeroMedia: HeroMedia = {
   videoDesktop: "/video/hero-neighborhood-test.mp4",
 };
 
-// Preview trial. Choose originalHeroMedia to restore the original, or
-// testHeroMedia for the bird. Every version's assets remain in public/.
-export const heroMedia: HeroMedia = neighborhoodHeroMedia;
+export const extendedHeroMedia: HeroMedia = {
+  type: "video",
+  poster: "/images/hero-extended-test.jpg",
+  posterAlt: "Key West architecture framed by tropical landscaping",
+  videoDesktop: "/video/hero-extended-test.mp4",
+};
+
+// Preview trial. Select originalHeroMedia, testHeroMedia (bird), or
+// neighborhoodHeroMedia to restore an earlier clip. All assets are retained.
+export const heroMedia: HeroMedia = extendedHeroMedia;
 
 // R5: Calendly link lives in one place — every scheduling entry point reads
 // this field, never a hardcoded URL.
