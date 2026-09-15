@@ -27,3 +27,15 @@ Scott supplied a longer edited video and asked to try it, acknowledging its leng
 - MP4 atom order confirms `moov` precedes `mdat` for progressive playback.
 - Output copies were verified against the encoded files before placement in the repository.
 - ESLint passes for the changed configuration.
+
+## Preview deployment
+
+- Application commit: `8dc564568ca1f0a94c59db35ba8b1d3b0cbaf2d9`.
+- Deployment: `dpl_6TDnyDV1eEWafwFdUeeLp9s4Ag7q`.
+- URL: https://scott-homes-lhrznb6gx-royalpalmsrealty1.vercel.app
+- Created as a preview through the authenticated Vercel connector. The installation wrapper restores the public GitHub archive pinned to the exact application commit, runs `npm ci --include=dev`, and then runs the repository's normal build. This matches the prior preview deployment approach and makes no project-wide settings changes.
+- Build completed successfully. Browser validation shows the 37.1-second video playing at 1920 × 1080, muted, looping, readyState 4, and no media error. Computed styles confirm the retained 8% overlay. Text and search remain readable in the inspected frame.
+- All ten primary navigation entries, Make an Offer, and the home-value link remain present.
+- The production domain was re-read after playback verification and still points to `dpl_4eeNZs8rQTH1YuUjNoLjtWPa2DGZ`.
+- A temporary preview share link expires September 16, 2026 at 12:52 UTC. Protection remains enabled; request a fresh link through the Vercel connector if required.
+- Physical iPhone testing was not performed. Existing mobile still-image behavior remains unchanged.
