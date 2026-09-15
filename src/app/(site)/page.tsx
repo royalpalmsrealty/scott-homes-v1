@@ -22,9 +22,9 @@ export default function Home() {
           scroll to see the button row. */}
       <section className="relative flex min-h-[70vh] items-center justify-center overflow-hidden sm:min-h-[85vh] lg:min-h-[calc(100vh-80px)]">
         <HeroBackground media={heroMedia} />
-        {/* A light wash preserves the footage's daylight. The headline trial
-            uses white Futura with a small dark shadow for legibility. */}
-        <div className="absolute inset-0 bg-ink/8" aria-hidden="true" />
+        {/* A translucent black wash gives the white headline more contrast
+            while keeping the video visible. */}
+        <div className="absolute inset-0 bg-ink/20" aria-hidden="true" />
         <div className="relative mx-auto w-full max-w-4xl px-4 sm:px-6">
           <VideoTextPanel>
             <h1 className="hero-futura text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
