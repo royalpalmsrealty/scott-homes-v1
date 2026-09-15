@@ -23,11 +23,11 @@ export default function Home() {
       <section className="relative flex min-h-[70vh] items-center justify-center overflow-hidden sm:min-h-[85vh] lg:min-h-[calc(100vh-80px)]">
         <HeroBackground media={heroMedia} />
         {/* A light wash preserves the footage's daylight. The headline trial
-            uses solid brand gold without a glow or shadow. */}
+            adds a white halo around the brand-gold letters. */}
         <div className="absolute inset-0 bg-ink/8" aria-hidden="true" />
         <div className="relative mx-auto w-full max-w-4xl px-4 sm:px-6">
           <VideoTextPanel>
-            <h1 className="font-display text-4xl leading-tight text-gold sm:text-5xl lg:text-6xl">
+            <h1 className="text-on-video-white font-display text-4xl leading-tight text-gold sm:text-5xl lg:text-6xl">
               Key West real estate, done quietly.
             </h1>
             <p className="text-on-video mt-4 max-w-xl font-sans text-base text-white/90 sm:text-lg">

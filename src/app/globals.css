@@ -174,3 +174,11 @@
     0 1px 3px rgba(0, 0, 0, 0.9),
     0 10px 28px rgba(0, 0, 0, 0.5);
 }
+
+/* White halo separates the homepage's gold letters from the moving footage. */
+.text-on-video-white {
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, 1),
+    0 0 8px rgba(255, 255, 255, 0.95),
+    0 0 20px rgba(255, 255, 255, 0.8);
+}
