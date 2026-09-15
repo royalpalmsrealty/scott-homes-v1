@@ -22,17 +22,22 @@ export default function Home() {
           scroll to see the button row. */}
       <section className="relative flex min-h-[70vh] items-center justify-center overflow-hidden sm:min-h-[85vh] lg:min-h-[calc(100vh-80px)]">
         <HeroBackground media={heroMedia} />
-        {/* A translucent black wash gives the white headline more contrast
-            while keeping the video visible. */}
-        <div className="absolute inset-0 bg-ink/20" aria-hidden="true" />
         <div className="relative mx-auto w-full max-w-4xl px-4 sm:px-6">
           <VideoTextPanel>
-            <h1 className="hero-futura text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
-              Key West real estate, done quietly.
-            </h1>
-            <p className="text-on-video mt-4 max-w-xl font-sans text-base text-white/90 sm:text-lg">
-              Serving Old Town, Casa Marina, Truman Annex, and every neighborhood in between.
-            </p>
+            {/* Match Scott's reference: a horizontal translucent band behind
+                just the headline and supporting text, sized to wrapped copy. */}
+            <div className="relative isolate w-full py-5">
+              <div
+                className="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2 bg-ink/35"
+                aria-hidden="true"
+              />
+              <h1 className="hero-futura text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
+                Key West real estate, done quietly.
+              </h1>
+              <p className="text-on-video mx-auto mt-4 max-w-xl font-sans text-base text-white/90 sm:text-lg">
+                Serving Old Town, Casa Marina, Truman Annex, and every neighborhood in between.
+              </p>
+            </div>
             {/* R2 — the primary search affordance now lives here. */}
             <div className="mt-8 w-full">
               <HeroSearchInput />
