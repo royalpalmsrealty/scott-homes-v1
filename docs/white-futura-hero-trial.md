@@ -40,3 +40,14 @@ this is applied over the hero video behind the headline. The existing hero wash
 increases from 8% to 20% black; the navigation bar remains in its prior style.
 The white Futura selection and all video behavior are retained. Restore
 `bg-ink/8` to undo only this overlay change.
+
+- Overlay source: `692d99bd8c6c7e4bb2636cdd8f72e3250a086380`.
+- Overlay deployment: `dpl_4F59gBS7yWskFtgkr5ba9PvvdYGs`.
+- Overlay preview: `https://scott-homes-54hff2hip-royalpalmsrealty1.vercel.app/`.
+
+Validation: the deployment is READY. Browser computed style confirms white h1
+text, the Futura-first fallback stack, the small dark shadow, and a black overlay
+with 0.2 alpha. Screenshot reviewed; full navigation remains present. This
+confirms the configured font stack, not native Futura rendering on an iPhone.
+No physical iPhone font test was performed. Share access expires September 16,
+2026 at 13:22:50 UTC and can be regenerated. Focused ESLint passed.
