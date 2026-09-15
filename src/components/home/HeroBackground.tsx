@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { BackgroundVideo } from "@/components/media/BackgroundVideo";
+import { HeroVideo } from "@/components/home/HeroVideo";
 import type { HeroMedia } from "@/lib/siteConfig";
 
 // R9: single CMS-editable toggle (heroMedia.type) decides image vs video —
@@ -21,5 +21,12 @@ export function HeroBackground({ media }: { media: HeroMedia }) {
     );
   }
 
-  return <BackgroundVideo poster={media.poster} src={media.videoDesktop} priority />;
+  return (
+    <HeroVideo
+      key={`${media.videoDesktop}:${media.videoMobile ?? ""}`}
+      poster={media.poster}
+      desktopSrc={media.videoDesktop}
+      mobileSrc={media.videoMobile}
+    />
+  );
 }
