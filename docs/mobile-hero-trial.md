@@ -17,6 +17,8 @@ preview; production and all earlier previews remain available.
   Full sequence retained; tiny duration difference is frame-rate rounding.
 - Poster: `public/images/hero-mobile-trial.jpg`, source frame at 21 seconds.
 - The approved 8% overlay remains unchanged.
+- Scott's follow-up replaces the homepage headline's teal halo with the
+  logo/microphone gold `#96802e`; white letters and dark legibility shadows remain.
 
 ## Playback
 
@@ -46,6 +48,7 @@ No previous assets were overwritten.
   phone/desktop selection, autoplay rejection, tap retry, poster visibility,
   pause, media error, reduced motion and data saver.
 - Focused ESLint and `git diff --check` passed.
+- The full Next.js build passed with all routes generated and TypeScript clean.
 - Physical iPhone and ChatGPT in-app browser playback still require a device
   trial. Autoplay is subject to the browser/host app's policy; manual playback
   is provided when it is denied.

@@ -27,7 +27,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-ink/8" aria-hidden="true" />
         <div className="relative mx-auto w-full max-w-4xl px-4 sm:px-6">
           <VideoTextPanel>
-            <h1 className="text-on-video-teal font-display text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
+            <h1 className="text-on-video-gold font-display text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
               Key West real estate, done quietly.
             </h1>
             <p className="text-on-video mt-4 max-w-xl font-sans text-base text-white/90 sm:text-lg">
