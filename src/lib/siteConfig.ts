@@ -16,12 +16,23 @@ export type HeroMedia =
 
 // R9: toggling this single field between "image" and "video" is the entire
 // CMS-editable mechanism — no code change required either way.
-export const heroMedia: HeroMedia = {
+export const originalHeroMedia: HeroMedia = {
   type: "video",
   poster: "/images/hero-poster.jpg",
   posterAlt: "Bright living room interior in a Key West home",
   videoDesktop: "/video/hero.mp4",
 };
+
+export const testHeroMedia: HeroMedia = {
+  type: "video",
+  poster: "/images/hero-seagull-test.jpg",
+  posterAlt: "Seagull beside the water",
+  videoDesktop: "/video/hero-seagull-test.mp4",
+};
+
+// Preview trial. Restore the previous hero by selecting originalHeroMedia here.
+// Both original assets remain in public/ so switching back needs no re-upload.
+export const heroMedia: HeroMedia = testHeroMedia;
 
 // R5: Calendly link lives in one place — every scheduling entry point reads
 // this field, never a hardcoded URL.
