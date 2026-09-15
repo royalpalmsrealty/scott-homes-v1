@@ -22,10 +22,9 @@ export default function Home() {
           scroll to see the button row. */}
       <section className="relative flex min-h-[70vh] items-center justify-center overflow-hidden sm:min-h-[85vh] lg:min-h-[calc(100vh-80px)]">
         <HeroBackground media={heroMedia} />
-        {/* Uniform wash across the whole frame — no shape, just a modest across-
-            the-board darkening. Legibility itself comes from the text-shadow
-            on the text (.text-on-video), not from a panel behind it. */}
-        <div className="absolute inset-0 bg-ink/28" aria-hidden="true" />
+        {/* A light wash preserves the footage's daylight. Text shadows provide
+            local contrast for the headline and supporting copy. */}
+        <div className="absolute inset-0 bg-ink/8" aria-hidden="true" />
         <div className="relative mx-auto w-full max-w-4xl px-4 sm:px-6">
           <VideoTextPanel>
             <h1 className="text-on-video-teal font-display text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">

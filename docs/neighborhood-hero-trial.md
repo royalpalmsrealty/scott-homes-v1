@@ -46,3 +46,9 @@ The production domain still resolved to deployment `dpl_4eeNZs8rQTH1YuUjNoLjtWPa
 - The production domain was re-read after verification and still points to `dpl_4eeNZs8rQTH1YuUjNoLjtWPa2DGZ`.
 - Physical iPhone testing was not performed. Existing mobile still-image behavior is unchanged.
 - Preview authentication remains enabled. A temporary share URL for Scott expires September 16, 2026 at 12:30 UTC; request a fresh link through the Vercel connector when needed.
+
+## Brightness follow-up
+
+Scott reported that the neighborhood video looked dark. Source inspection and the rendered browser styles confirmed a 28% black overlay covering the hero. The brighter trial reduces this overlay to 8% while retaining the existing text shadows and the exact same video and poster files.
+
+The change is isolated on `codex/brighter-hero-preview`. The first neighborhood preview at `dpl_DVXGteu5mgaBgU9DP4qXcbBPW2mz` remains available for comparison and rollback. This remains preview-only.
