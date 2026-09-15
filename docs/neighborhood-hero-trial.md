@@ -52,3 +52,9 @@ The production domain still resolved to deployment `dpl_4eeNZs8rQTH1YuUjNoLjtWPa
 Scott reported that the neighborhood video looked dark. Source inspection and the rendered browser styles confirmed a 28% black overlay covering the hero. The brighter trial reduces this overlay to 8% while retaining the existing text shadows and the exact same video and poster files.
 
 The change is isolated on `codex/brighter-hero-preview`. The first neighborhood preview at `dpl_DVXGteu5mgaBgU9DP4qXcbBPW2mz` remains available for comparison and rollback. This remains preview-only.
+
+- Brighter application commit: `ff617805445296a4b1362e94ee043146ed06a4e5`.
+- Brighter deployment: `dpl_DqYfRPmYkwmiKcdExwXzsnydSae3`.
+- URL: https://scott-homes-3w22hpv5f-royalpalmsrealty1.vercel.app
+- Same pinned-source deployment method. Temporary share access expires September 16, 2026 at 12:37 UTC.
+- Deployment completed successfully. Browser computed styles confirm 8% black overlay; the video plays without a media error. Visual review confirms brighter footage with readable headline and supporting copy, and all ten navigation entries plus the home-value and offer controls remain present. Production was verified unchanged after this review.
