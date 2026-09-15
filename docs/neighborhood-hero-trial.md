@@ -31,3 +31,18 @@ The production domain still resolved to deployment `dpl_4eeNZs8rQTH1YuUjNoLjtWPa
 
 - Full FFmpeg decode of the new web copy completes without errors.
 - The web copy contains exactly one video stream and no audio.
+- MP4 atom inspection confirms `moov` precedes `mdat` for progressive playback.
+- ESLint passes for the updated hero configuration.
+
+## Preview deployment
+
+- Application commit: `6ea9aa759bc70199a063ecab1060bbbd5baa7fea`.
+- Deployment: `dpl_DVXGteu5mgaBgU9DP4qXcbBPW2mz`.
+- URL: https://scott-homes-62talkohh-royalpalmsrealty1.vercel.app
+- Created as preview using the authenticated Vercel connector and the same pinned-source install wrapper described in `hero-video-trial.md`. The wrapper restores the exact application commit above and runs the repository's normal installation and build.
+- Deployment reached READY. Build logs confirm restoration of the exact pinned source.
+- Desktop browser validation shows the new video playing at 1920 × 1080, muted and looping, readyState 4, no media error. A visual review confirms the homepage text and search overlay remain readable.
+- All ten primary navigation entries, Make an Offer, and the home-value link are present.
+- The production domain was re-read after verification and still points to `dpl_4eeNZs8rQTH1YuUjNoLjtWPa2DGZ`.
+- Physical iPhone testing was not performed. Existing mobile still-image behavior is unchanged.
+- Preview authentication remains enabled. A temporary share URL for Scott expires September 16, 2026 at 12:30 UTC; request a fresh link through the Vercel connector when needed.
