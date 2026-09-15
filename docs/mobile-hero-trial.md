@@ -53,4 +53,20 @@ No previous assets were overwritten.
   trial. Autoplay is subject to the browser/host app's policy; manual playback
   is provided when it is denied.
 
-Deployment and browser verification are recorded below after the preview build.
+## Ready preview
+
+- Final source: `133a820686ce51e85f14a5c6100b3aa9ede76881`.
+- Deployment: `dpl_2dD2nFtf4AYf7JxJHjXjbvts9FU8`, READY, preview.
+- URL: `https://scott-homes-16y2f8s5a-royalpalmsrealty1.vercel.app/`.
+- Vercel's shared preview link expires September 16, 2026 at 13:09:30 UTC;
+  generate a new share link if needed, without removing deployment protection.
+- Browser verified the final heading's gold shadows are rgba(150,128,46,.95)
+  and rgba(150,128,46,.55), matching `#96802e`.
+- Final video observed playing with duration 36.133333, no media error.
+- Pause and resume were clicked successfully on the identical player in the
+  preceding mobile preview (`dpl_5XhHF8AjSZwT37VTGUqG51nnABjy`).
+- Full navigation, Home Worth and Make an Offer remain visible.
+- Production reconfirmed at `dpl_4eeNZs8rQTH1YuUjNoLjtWPa2DGZ` with source
+  `0da96fda6d863c2e52165bbc0112b2c9c7614ad8`; no hero preview was promoted.
+- Automated tests cover phone source selection and denied autoplay. Browser
+  playback verification used desktop Chrome; no physical iPhone test was run.
