@@ -32,7 +32,8 @@ export default function Home() {
                 aria-hidden="true"
               />
               <h1 className="hero-futura text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">
-                Key West real estate, done quietly.
+                <span className="block tracking-[0.04em]">KEY WEST REAL ESTATE</span>{" "}
+                <span className="mt-2 block text-[0.72em] font-normal tracking-normal">done quietly.</span>
               </h1>
               <p className="text-on-video mx-auto mt-4 max-w-xl font-sans text-base text-white/90 sm:text-lg">
                 Serving Old Town, Casa Marina, Truman Annex, and every neighborhood in between.
