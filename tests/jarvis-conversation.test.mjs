@@ -33,6 +33,20 @@ test("asks for missing search criteria instead of falling through", () => {
   assert.match(turn?.clarification ?? "", /bedrooms.*bathrooms/i);
 });
 
+test("uses a short answer as the value requested by the prior clarification", () => {
+  const turn = deriveJarvisConversationTurn([
+    { role: "user", content: "Find a three bedroom home in Casa Marina" },
+    { role: "assistant", content: "What should I use for minimum bathrooms?" },
+    { role: "user", content: "Maybe two" },
+  ]);
+  assert.deepEqual(turn?.criteria, {
+    neighborhood: "Casa Marina",
+    minBeds: 3,
+    minBaths: 2,
+    pool: false,
+  });
+});
+
 test("keeps requirements and resolves the first result during a pool refinement", () => {
   const context = {
     criteria: { neighborhood: "Casa Marina", minBeds: 3, minBaths: 2, pool: false },

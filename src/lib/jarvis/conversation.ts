@@ -48,6 +48,37 @@ function numberFrom(text: string, noun: "bed" | "bath"): number | undefined {
   return Number.isFinite(numeric) ? numeric : NUMBER_WORDS[match[1].toLowerCase()];
 }
 
+function standaloneNumber(text: string): number | undefined {
+  const words = Object.keys(NUMBER_WORDS).join("|");
+  const match = text.match(
+    new RegExp(`^\\s*(?:maybe|about|approximately|at least|minimum)?\\s*(\\d+(?:\\.5)?|${words})\\s*(?:please)?[.!?]?\\s*$`, "i")
+  );
+  if (!match) return undefined;
+  const numeric = Number(match[1]);
+  return Number.isFinite(numeric) ? numeric : NUMBER_WORDS[match[1].toLowerCase()];
+}
+
+function promptedNumber(
+  messages: ConversationMessage[],
+  noun: "bedroom" | "bathroom"
+): number | undefined {
+  const otherNoun = noun === "bedroom" ? "bathroom" : "bedroom";
+  for (let index = messages.length - 1; index > 0; index -= 1) {
+    const answer = messages[index];
+    const prompt = messages[index - 1];
+    if (
+      answer.role === "user" &&
+      prompt.role === "assistant" &&
+      new RegExp(`\\b${noun}s?\\b`, "i").test(prompt.content) &&
+      !new RegExp(`\\b${otherNoun}s?\\b`, "i").test(prompt.content)
+    ) {
+      const value = standaloneNumber(answer.content);
+      if (value !== undefined) return value;
+    }
+  }
+  return undefined;
+}
+
 function neighborhoodFrom(text: string): string | undefined {
   const lowered = text.toLowerCase();
   return neighborhoods.find((neighborhood) => lowered.includes(neighborhood.name.toLowerCase()))?.name;
@@ -89,7 +120,14 @@ export function deriveJarvisConversationTurn(
   context?: JarvisConversationContext
 ): JarvisConversationTurn | null {
   const lastUserMessage = [...messages].reverse().find((message) => message.role === "user")?.content.trim();
-  if (!lastUserMessage || !isSearchTurn(lastUserMessage, Boolean(context))) return null;
+  const promptedBeds = promptedNumber(messages, "bedroom");
+  const promptedBaths = promptedNumber(messages, "bathroom");
+  if (
+    !lastUserMessage ||
+    (!isSearchTurn(lastUserMessage, Boolean(context)) && promptedBeds === undefined && promptedBaths === undefined)
+  ) {
+    return null;
+  }
 
   const allUserText = messages
     .filter((message) => message.role === "user")
@@ -98,9 +136,17 @@ export function deriveJarvisConversationTurn(
   const shorthand = bedBathShorthandFrom(lastUserMessage);
   const neighborhood = neighborhoodFrom(lastUserMessage) ?? context?.criteria.neighborhood ?? neighborhoodFrom(allUserText);
   const minBeds =
-    numberFrom(lastUserMessage, "bed") ?? shorthand?.minBeds ?? context?.criteria.minBeds ?? numberFrom(allUserText, "bed");
+    numberFrom(lastUserMessage, "bed") ??
+    promptedBeds ??
+    shorthand?.minBeds ??
+    context?.criteria.minBeds ??
+    numberFrom(allUserText, "bed");
   const minBaths =
-    numberFrom(lastUserMessage, "bath") ?? shorthand?.minBaths ?? context?.criteria.minBaths ?? numberFrom(allUserText, "bath");
+    numberFrom(lastUserMessage, "bath") ??
+    promptedBaths ??
+    shorthand?.minBaths ??
+    context?.criteria.minBaths ??
+    numberFrom(allUserText, "bath");
   const pool = /\b(?:with|need|must have|has|include|including|add)\s+(?:a\s+)?pool\b/i.test(lastUserMessage)
     ? true
     : context?.criteria.pool ?? false;
