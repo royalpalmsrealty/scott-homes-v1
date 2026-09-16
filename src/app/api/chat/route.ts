@@ -76,7 +76,7 @@ export async function POST(request: Request) {
             isMinimum: false,
             url: result.idxUrl,
             listingIds: result.listingIds,
-            criteria: result.criteria,
+            criteria: jarvisTurn.criteria,
             ...(jarvisTurn.referenceListingId ? { referenceListingId: jarvisTurn.referenceListingId } : {}),
           },
         ],
