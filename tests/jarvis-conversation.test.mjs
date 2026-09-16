@@ -14,6 +14,25 @@ test("extracts a complete first-turn consumer search", () => {
   });
 });
 
+test("understands compact mobile-dictation bed and bath shorthand", () => {
+  const turn = deriveJarvisConversationTurn([
+    { role: "user", content: "I am looking for 32 in the Casa Marina" },
+  ]);
+  assert.deepEqual(turn?.criteria, {
+    neighborhood: "Casa Marina",
+    minBeds: 3,
+    minBaths: 2,
+    pool: false,
+  });
+});
+
+test("asks for missing search criteria instead of falling through", () => {
+  const turn = deriveJarvisConversationTurn([
+    { role: "user", content: "Find me a home in Casa Marina" },
+  ]);
+  assert.match(turn?.clarification ?? "", /bedrooms.*bathrooms/i);
+});
+
 test("keeps requirements and resolves the first result during a pool refinement", () => {
   const context = {
     criteria: { neighborhood: "Casa Marina", minBeds: 3, minBaths: 2, pool: false },

@@ -60,7 +60,7 @@ export async function POST(request: Request) {
   if (jarvisTurn?.clarification) {
     return NextResponse.json({ reply: jarvisTurn.clarification, clientActions: [], disabled: false });
   }
-  if (jarvisTurn) {
+  if (jarvisTurn?.criteria) {
     const result = await searchConsumerListings({ ...jarvisTurn.criteria, limit: 7 });
     if (result.state === "ready") {
       const requirementSummary = `${result.criteria.neighborhood}, ${result.criteria.minBeds}+ bedrooms, ${result.criteria.minBaths}+ bathrooms${result.criteria.pool ? ", and a pool" : ""}`;

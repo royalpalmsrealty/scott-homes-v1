@@ -20,7 +20,7 @@ export type JarvisConversationContext = z.infer<typeof JarvisConversationContext
 type ConversationMessage = { role: "user" | "assistant"; content: string };
 
 export type JarvisConversationTurn = {
-  criteria: JarvisConversationContext["criteria"];
+  criteria?: JarvisConversationContext["criteria"];
   referenceListingId?: string;
   clarification?: string;
 };
@@ -53,6 +53,24 @@ function neighborhoodFrom(text: string): string | undefined {
   return neighborhoods.find((neighborhood) => lowered.includes(neighborhood.name.toLowerCase()))?.name;
 }
 
+function bedBathShorthandFrom(text: string): { minBeds: number; minBaths: number } | undefined {
+  const separated = text.match(/\b([1-9])\s*(?:\/|-|x|by)\s*([1-9](?:\.5)?)\b/i);
+  if (separated) return { minBeds: Number(separated[1]), minBaths: Number(separated[2]) };
+
+  // Mobile dictation commonly turns “three, two” or “three-two” into “32”.
+  // Only treat a compact two-digit value as bed/bath shorthand when the same
+  // message clearly has home-search intent and names a supported neighborhood.
+  const compact = text.match(/\b([1-9])([1-9])\b/);
+  if (
+    compact &&
+    /\b(home|house|property|listing|looking|find|search)\b/i.test(text) &&
+    neighborhoodFrom(text)
+  ) {
+    return { minBeds: Number(compact[1]), minBaths: Number(compact[2]) };
+  }
+  return undefined;
+}
+
 function ordinalFrom(text: string): number | undefined {
   const word = text.match(/\b(first|second|third|fourth|fifth|sixth|seventh)\b/i)?.[1]?.toLowerCase();
   if (word) return ["first", "second", "third", "fourth", "fifth", "sixth", "seventh"].indexOf(word) + 1;
@@ -77,14 +95,24 @@ export function deriveJarvisConversationTurn(
     .filter((message) => message.role === "user")
     .map((message) => message.content)
     .join("\n");
+  const shorthand = bedBathShorthandFrom(lastUserMessage);
   const neighborhood = neighborhoodFrom(lastUserMessage) ?? context?.criteria.neighborhood ?? neighborhoodFrom(allUserText);
-  const minBeds = numberFrom(lastUserMessage, "bed") ?? context?.criteria.minBeds ?? numberFrom(allUserText, "bed");
-  const minBaths = numberFrom(lastUserMessage, "bath") ?? context?.criteria.minBaths ?? numberFrom(allUserText, "bath");
+  const minBeds =
+    numberFrom(lastUserMessage, "bed") ?? shorthand?.minBeds ?? context?.criteria.minBeds ?? numberFrom(allUserText, "bed");
+  const minBaths =
+    numberFrom(lastUserMessage, "bath") ?? shorthand?.minBaths ?? context?.criteria.minBaths ?? numberFrom(allUserText, "bath");
   const pool = /\b(?:with|need|must have|has|include|including|add)\s+(?:a\s+)?pool\b/i.test(lastUserMessage)
     ? true
     : context?.criteria.pool ?? false;
 
-  if (!neighborhood || minBeds === undefined || minBaths === undefined) return null;
+  if (!neighborhood || minBeds === undefined || minBaths === undefined) {
+    const missing = [
+      !neighborhood ? "the neighborhood" : "",
+      minBeds === undefined ? "minimum bedrooms" : "",
+      minBaths === undefined ? "minimum bathrooms" : "",
+    ].filter(Boolean);
+    return { clarification: `What should I use for ${missing.join(" and ")}?` };
+  }
 
   if (context && minBeds < context.criteria.minBeds) {
     return {
