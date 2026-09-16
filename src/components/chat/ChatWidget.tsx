@@ -7,7 +7,15 @@ import { openCalendlyPopup } from "@/components/scheduling/CalendlyButton";
 import { brand } from "@/lib/brand";
 import { AssistantButton } from "@/components/assistant/AssistantButton";
 
-type SearchResultsSummary = { count: number; isMinimum: boolean; url: string };
+type JarvisCriteria = { neighborhood: string; minBeds: number; minBaths: number; pool: boolean };
+type SearchResultsSummary = {
+  count: number;
+  isMinimum: boolean;
+  url: string;
+  listingIds?: string[];
+  criteria?: JarvisCriteria;
+  referenceListingId?: string;
+};
 
 type UIMessage = {
   role: "user" | "assistant";
@@ -16,10 +24,11 @@ type UIMessage = {
 };
 
 type ClientAction =
-  | { type: "searchResults"; count: number; isMinimum: boolean; url: string }
+  | ({ type: "searchResults" } & SearchResultsSummary)
   | { type: "open_scheduling"; prefill: { name?: string; email?: string } };
 
 const STORAGE_KEY = "chatConversation";
+const JARVIS_CONTEXT_KEY = "jarvisSearchContext";
 const NUDGE_KEY = "chatNudgeShown";
 const NUDGE_DELAY_MS = 45_000;
 const EVER_OPENED_KEY = "chatEverOpened";
@@ -76,6 +85,9 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<UIMessage[]>([GREETING]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [jarvisContext, setJarvisContext] = useState<
+    { criteria: JarvisCriteria; listingIds: string[] } | undefined
+  >();
   const [showNudge, setShowNudge] = useState(false);
   // Keeps the launcher pulsing so it's easy to spot on a busy page — stops
   // for good the moment the visitor actually opens it once this session.
@@ -84,6 +96,16 @@ export function ChatWidget() {
 
   useEffect(() => {
     setEverOpened(Boolean(sessionStorage.getItem(EVER_OPENED_KEY)));
+  }, []);
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem(JARVIS_CONTEXT_KEY);
+    if (!saved) return;
+    try {
+      setJarvisContext(JSON.parse(saved));
+    } catch {
+      sessionStorage.removeItem(JARVIS_CONTEXT_KEY);
+    }
   }, []);
 
   function openChat() {
@@ -147,6 +169,7 @@ export function ChatWidget() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+          ...(jarvisContext ? { jarvisContext } : {}),
         }),
       });
       const data = await res.json();
@@ -156,7 +179,12 @@ export function ChatWidget() {
 
       for (const action of actions) {
         if (action.type === "searchResults") {
-          assistantMessage.searchResults = { count: action.count, isMinimum: action.isMinimum, url: action.url };
+          assistantMessage.searchResults = action;
+          if (action.criteria && action.listingIds) {
+            const nextContext = { criteria: action.criteria, listingIds: action.listingIds };
+            setJarvisContext(nextContext);
+            sessionStorage.setItem(JARVIS_CONTEXT_KEY, JSON.stringify(nextContext));
+          }
         }
         if (action.type === "open_scheduling") {
           openCalendlyPopup(action.prefill, "chatbot");

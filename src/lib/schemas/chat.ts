@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { JarvisConversationContextSchema } from "@/lib/jarvis/conversation";
 
 export const ChatRequestSchema = z.object({
   messages: z
@@ -10,6 +11,7 @@ export const ChatRequestSchema = z.object({
     )
     .min(1)
     .max(40), // caps conversation length sent per request — keeps token cost bounded
+  jarvisContext: JarvisConversationContextSchema.optional(),
 });
 
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
