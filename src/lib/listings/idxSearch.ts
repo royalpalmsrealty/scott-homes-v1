@@ -13,6 +13,43 @@
 const IDX_BASE_URL = "https://search.royalpalmsrealty.com/idx/results/listings";
 const IDX_ID = "b066"; // Florida Keys MLS, per mls/approvedmls
 
+export type IdxListingIdSort = "newest" | "price-desc" | "price-asc";
+
+/**
+ * Builds IDX Broker's official Listing ID results URL from MLS numbers found
+ * by an authorized server-side search. IDX owns the consumer display; no
+ * professional FlexMLS fields are serialized into the browser response.
+ *
+ * Verified against the Royal Palms IDX account on 2026-09-16: the field is
+ * `csv_listingID`, accepts comma-separated MLS numbers, and is limited by the
+ * hosted form to 25 numbers.
+ */
+export function buildIdxListingIdResultsUrl(
+  listingIds: string[],
+  sort: IdxListingIdSort = "price-desc"
+): string {
+  const uniqueIds = [...new Set(listingIds.map((id) => id.trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) throw new Error("At least one MLS number is required");
+  if (uniqueIds.length > 25) throw new Error("IDX Broker accepts at most 25 MLS numbers");
+  if (uniqueIds.some((id) => !/^[A-Za-z0-9-]+$/.test(id))) {
+    throw new Error("Invalid MLS number");
+  }
+
+  const sortValues: Record<IdxListingIdSort, string> = {
+    newest: "newest",
+    "price-desc": "prd",
+    "price-asc": "pra",
+  };
+  const params = new URLSearchParams({
+    idxID: IDX_ID,
+    csv_listingID: uniqueIds.join(","),
+    srt: sortValues[sort],
+    per: String(Math.min(uniqueIds.length, 25)),
+    nowrapper: "1",
+  });
+  return `${IDX_BASE_URL}?${params.toString()}`;
+}
+
 // CORRECTED 2026-08-24 (client-verified): the real per-neighborhood field is
 // a_locationTaxLegalKwNeighborhood[] — not exposed on the public search/
 // advanced-search forms (an earlier pass through this project only found
