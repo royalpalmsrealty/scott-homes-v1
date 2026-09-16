@@ -90,15 +90,7 @@ export const CHAT_TOOLS: ToolDef[] = [
 ];
 
 export type ClientAction =
-  | {
-      type: "searchResults";
-      count: number;
-      isMinimum: boolean;
-      url: string;
-      listingIds?: string[];
-      criteria?: { neighborhood: string; minBeds: number; minBaths: number; pool: boolean };
-      referenceListingId?: string;
-    }
+  | { type: "searchResults"; count: number; isMinimum: boolean; url: string }
   | { type: "open_scheduling"; prefill: { name?: string; email?: string } };
 
 // Confirmed live 2026-09-09: telling the model not to invent a filter for

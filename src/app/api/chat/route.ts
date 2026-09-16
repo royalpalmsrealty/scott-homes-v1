@@ -12,8 +12,6 @@ import { CHAT_SYSTEM_PROMPT } from "@/lib/ai/chatSystemPrompt";
 import { CHAT_TOOLS, executeChatTool, type ClientAction } from "@/lib/ai/chatTools";
 import { getVectorStoreId } from "@/lib/ai/knowledgeBase";
 import { brand } from "@/lib/brand";
-import { deriveJarvisConversationTurn } from "@/lib/jarvis/conversation";
-import { searchConsumerListings } from "@/lib/jarvis/consumerSearchServer";
 
 const MAX_TOOL_ROUNDTRIPS = 4;
 
@@ -54,47 +52,6 @@ export async function POST(request: Request) {
   const parsed = ChatRequestSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
-  }
-
-  const jarvisTurn = deriveJarvisConversationTurn(parsed.data.messages, parsed.data.jarvisContext);
-  if (jarvisTurn?.clarification) {
-    return NextResponse.json({ reply: jarvisTurn.clarification, clientActions: [], disabled: false });
-  }
-  if (jarvisTurn?.criteria) {
-    const result = await searchConsumerListings({ ...jarvisTurn.criteria, limit: 7 });
-    if (result.state === "ready") {
-      const requirementSummary = `${result.criteria.neighborhood}, ${result.criteria.minBeds}+ bedrooms, ${result.criteria.minBaths}+ bathrooms${result.criteria.pool ? ", and a pool" : ""}`;
-      const reference = jarvisTurn.referenceListingId
-        ? ` I kept MLS #${jarvisTurn.referenceListingId} as the property you meant and preserved your other requirements.`
-        : "";
-      return NextResponse.json({
-        reply: `I found ${result.count} current match${result.count === 1 ? "" : "es"} for ${requirementSummary}.${reference}`,
-        clientActions: [
-          {
-            type: "searchResults",
-            count: result.count,
-            isMinimum: false,
-            url: result.idxUrl,
-            listingIds: result.listingIds,
-            criteria: jarvisTurn.criteria,
-            ...(jarvisTurn.referenceListingId ? { referenceListingId: jarvisTurn.referenceListingId } : {}),
-          },
-        ],
-        disabled: false,
-      });
-    }
-    if (result.state === "empty") {
-      return NextResponse.json({
-        reply: `I didn’t find a current IDX match for ${result.criteria.neighborhood} with ${result.criteria.minBeds}+ bedrooms, ${result.criteria.minBaths}+ bathrooms${result.criteria.pool ? ", and a pool" : ""}. I kept those requirements unchanged—tell me what you’d like to adjust.`,
-        clientActions: [],
-        disabled: false,
-      });
-    }
-    return NextResponse.json({
-      reply: "The live listing search is temporarily unavailable. I kept your requirements, so please try again in a moment.",
-      clientActions: [],
-      disabled: false,
-    });
   }
 
   if (!isOpenAIConfigured()) {
