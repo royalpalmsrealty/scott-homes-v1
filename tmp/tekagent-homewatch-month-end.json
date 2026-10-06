@@ -1,0 +1,355 @@
+{
+  "name": "RPR Homewatch — TEKAGENT Month-End",
+  "nodes": [
+    {
+      "id": "hw-review-trigger",
+      "name": "Month-end review window",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -180
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 15 28-31 * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "hw-last-day",
+      "name": "Only last calendar day",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        -180
+      ],
+      "parameters": {
+        "jsCode": "const now=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));const tomorrow=new Date(now);tomorrow.setDate(now.getDate()+1);if(tomorrow.getMonth()===now.getMonth())return [];const month=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;return [{json:{month}}];"
+      }
+    },
+    {
+      "id": "hw-review-call",
+      "name": "Send Scott + Juan review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        -180
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.royalpalmsrealty.com/api/tekagent/homewatch/review",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer __HOMEWATCH_BRIDGE_TOKEN__"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ month: $json.month }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "hw-review-require-success",
+      "name": "Require review send success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        -180
+      ],
+      "parameters": {
+        "jsCode": "if($json.statusCode!==200||$json.body?.ok!==true)throw Error('Homewatch pre-billing review did not complete. Billing must not rely on an unreviewed month.');return [{json:$json.body}];"
+      }
+    },
+    {
+      "id": "hw-bill-trigger",
+      "name": "First day billing",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        180
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 1 * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "hw-prev-month",
+      "name": "Completed calendar month",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        180
+      ],
+      "parameters": {
+        "jsCode": "const now=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));const prior=new Date(now.getFullYear(),now.getMonth()-1,1);const month=`${prior.getFullYear()}-${String(prior.getMonth()+1).padStart(2,'0')}`;return [{json:{month}}];"
+      }
+    },
+    {
+      "id": "hw-summary-call",
+      "name": "Load TEKAGENT billing packet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        180
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.royalpalmsrealty.com/api/tekagent/homewatch/month-end",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer __HOMEWATCH_BRIDGE_TOKEN__"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ operation: 'summary', month: $json.month }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "hw-ready-batches",
+      "name": "Build one owner invoice batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        180
+      ],
+      "parameters": {
+        "jsCode": "if($json.statusCode!==200)throw Error('Homewatch ledger unavailable; no billing should run.');\nconst s=$json.body;\nconst out=[];\nfor(const g of s.owner_groups||[]){\n  const ready=(g.visits||[]).filter(v=>v.billing_status==='unbilled'&&v.property_id&&g.stripe_customer_id);\n  const held=(g.visits||[]).filter(v=>v.billing_status==='held');\n  if(held.length||!ready.length)continue;\n  const invoiceLines=[];\n  for(const v of ready){\n    const label=new Date(v.visit_date+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});\n    const note=v.notes?(' — '+v.notes):'';\n    invoiceLines.push({\n      description:`${label} — Homewatch Visit — ${v.property_address}${note}`,\n      amountCents:Math.round(Number(v.visit_amount||0)*100),\n      visitId:v.id,\n      kind:'visit'\n    });\n    if(Number(v.other_charge||0)>0){\n      invoiceLines.push({\n        description:`${label} — ${v.other_charge_description||'Additional Homewatch charge'} — ${v.property_address}`,\n        amountCents:Math.round(Number(v.other_charge||0)*100),\n        visitId:v.id,\n        kind:'other'\n      });\n    }\n  }\n  out.push({json:{\n    month:s.month,\n    ownerName:g.owner_name,\n    stripeCustomerId:g.stripe_customer_id,\n    visitIds:ready.map(v=>v.id),\n    invoiceLines,\n    amountCents:invoiceLines.reduce((n,line)=>n+line.amountCents,0),\n    batchId:`hw:${s.month}:${g.stripe_customer_id}`\n  }});\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "hw-reserve-batch",
+      "name": "Reserve owner-month batch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        180
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.royalpalmsrealty.com/api/tekagent/homewatch/month-end",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer __HOMEWATCH_BRIDGE_TOKEN__"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ operation: 'reserve-batch', month: $json.month, stripeCustomerId: $json.stripeCustomerId, ownerName: $json.ownerName, batchKey: $json.batchId, visitIds: $json.visitIds, totalAmount: $json.amountCents / 100 }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "hw-require-reserve",
+      "name": "Require fresh billing batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        180
+      ],
+      "parameters": {
+        "jsCode": "if($json.statusCode!==200||$json.body?.ok!==true)throw Error('Homewatch batch reservation failed. No Stripe invoice should be created.');if($json.body?.created!==true)throw Error(`Homewatch owner-month batch already exists (${JSON.stringify($json.body?.batch||{})}). Stop duplicate billing and review the existing batch.`);return [{json:$json.body.batch}];"
+      }
+    },
+    {
+      "id": "hw-stripe-guard",
+      "name": "Stripe credential activation guard",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        180
+      ],
+      "parameters": {
+        "errorMessage": "Stripe billing branch is intentionally disabled until the Royal Palms restricted Stripe credential is bound and duplicate-screen nodes are verified. Do not remove this guard before that test."
+      }
+    },
+    {
+      "id": "hw-notes",
+      "name": "Activation notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        390
+      ],
+      "parameters": {
+        "content": "## TEKAGENT Homewatch cutover\nReact/PWA field app -> Supabase is the durable source of truth. n8n owns monthly orchestration only.\n\nBilling contract:\n1. One Stripe invoice per owner/customer per billing month, regardless of number of visits or properties.\n2. Every visit is a separate invoice line: date + Homewatch Visit + property + optional visit note.\n3. Handyman/other charges are separate invoice lines beneath that visit.\n4. batchId is deterministic (hw:<YYYY-MM>:<stripeCustomerId>) and must be screened across draft/open/paid/void/uncollectible before invoice creation.\n5. Visit billing_month_override takes precedence over visit_date for late visits.\n6. Never invoice held/unmapped visits.\n\nBefore activation:\n1. Bind HOMEWATCH bridge authentication using an n8n credential, not plaintext workflow JSON.\n2. Test the last-day review.\n3. Bind a restricted Royal Palms Stripe credential.\n4. Add Stripe duplicate-screen + invoice-item + finalize/send + mark-billed nodes.\n5. Verify owner notes render on the Stripe invoice.\n6. Only after end-to-end Stripe testing, remove the activation guard.\n\nNever make n8n the only copy of a field report; the TEKAGENT ledger is primary.",
+        "width": 700,
+        "height": 360
+      }
+    }
+  ],
+  "connections": {
+    "Month-end review window": {
+      "main": [
+        [
+          {
+            "node": "Only last calendar day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only last calendar day": {
+      "main": [
+        [
+          {
+            "node": "Send Scott + Juan review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Scott + Juan review": {
+      "main": [
+        [
+          {
+            "node": "Require review send success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "First day billing": {
+      "main": [
+        [
+          {
+            "node": "Completed calendar month",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Completed calendar month": {
+      "main": [
+        [
+          {
+            "node": "Load TEKAGENT billing packet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load TEKAGENT billing packet": {
+      "main": [
+        [
+          {
+            "node": "Build one owner invoice batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build one owner invoice batch": {
+      "main": [
+        [
+          {
+            "node": "Reserve owner-month batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reserve owner-month batch": {
+      "main": [
+        [
+          {
+            "node": "Require fresh billing batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Require fresh billing batch": {
+      "main": [
+        [
+          {
+            "node": "Stripe credential activation guard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/New_York",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true
+  },
+  "active": false
+}
